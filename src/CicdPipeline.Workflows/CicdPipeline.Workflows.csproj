@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <!-- Temporal signal/update handlers require async Task signatures but often set state synchronously -->
+    <NoWarn>$(NoWarn);CS1998</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Temporalio" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
