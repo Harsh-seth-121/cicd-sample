@@ -5,6 +5,12 @@ services:
       - "7233:7233"
     environment:
       - TEMPORAL_DEFAULT_NAMESPACE=cicd-prodctl
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator namespace describe --namespace cicd-prodctl --address localhost:7233 || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 24
+      start_period: 30s
     networks:
       - cicd
 
@@ -16,7 +22,29 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     depends_on:
-      - temporal
+      temporal:
+        condition: service_healthy
+    networks:
+      - cicd
+
+  temporal-init:
+    image: temporalio/admin-tools:latest
+    depends_on:
+      temporal:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdPipelineStatus --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdBranch --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdRepository --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdCommitSha --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdStage --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdPipelineStartedAt --type DateTime || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdSemVer --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdImageDigest --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdTriggerType --type Keyword || true
+        echo "Search attributes registered."
     networks:
       - cicd
 
@@ -32,7 +60,8 @@ services:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
     depends_on:
-      - temporal
+      temporal-init:
+        condition: service_completed_successfully
     networks:
       - cicd
 
@@ -46,7 +75,8 @@ services:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
     depends_on:
-      - temporal
+      temporal-init:
+        condition: service_completed_successfully
     networks:
       - cicd
 
@@ -60,7 +90,8 @@ services:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
     depends_on:
-      - temporal
+      temporal-init:
+        condition: service_completed_successfully
     networks:
       - cicd
 
@@ -74,7 +105,8 @@ services:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
     depends_on:
-      - temporal
+      temporal-init:
+        condition: service_completed_successfully
     networks:
       - cicd
 
@@ -88,7 +120,8 @@ services:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
     depends_on:
-      - temporal
+      temporal-init:
+        condition: service_completed_successfully
     networks:
       - cicd
 
@@ -102,7 +135,8 @@ services:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
     depends_on:
-      - temporal
+      temporal-init:
+        condition: service_completed_successfully
     networks:
       - cicd
 

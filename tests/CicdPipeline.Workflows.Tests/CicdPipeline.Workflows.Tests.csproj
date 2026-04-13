@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CicdPipeline.Workflows\CicdPipeline.Workflows.csproj" />
     <ProjectReference Include="..\..\src\CicdPipeline.Contracts\CicdPipeline.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\CicdPipeline.ServiceDefaults\CicdPipeline.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
