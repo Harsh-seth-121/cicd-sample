@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, init]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> $GITHUB_PATH
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    strategy:
+      matrix:
+        project:
+          - name: api
+            path: src/CicdPipeline.Api/CicdPipeline.Api.csproj
+          - name: worker-orchestrator
+            path: src/CicdPipeline.Worker.Orchestrator/CicdPipeline.Worker.Orchestrator.csproj
+          - name: worker-buildtest
+            path: src/CicdPipeline.Worker.BuildTest/CicdPipeline.Worker.BuildTest.csproj
+          - name: worker-gitversion
+            path: src/CicdPipeline.Worker.GitVersion/CicdPipeline.Worker.GitVersion.csproj
+          - name: worker-publish
+            path: src/CicdPipeline.Worker.Publish/CicdPipeline.Worker.Publish.csproj
+          - name: worker-deploy
+            path: src/CicdPipeline.Worker.Deploy/CicdPipeline.Worker.Deploy.csproj
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg PROJECT_PATH=${{ matrix.project.path }} \
+            -t cicd-pipeline/${{ matrix.project.name }}:${{ github.sha }} \
+            .

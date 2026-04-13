@@ -1,6 +1,5 @@
-@.claude/rules/architecture.md
-@.claude/rules/testing.md
-@.claude/rules/api-conventions.md
+@.claude/rules/temporal_cicd_mermai_pack/
+
 
 # CLAUDE.md
 
@@ -20,6 +19,8 @@ This is a CI/CD sample project in early development. The `.gitignore` is configu
 
 Based on `.gitignore` configuration:
 - **.NET / C#** — MSBuild, NuGet packages
+- Temporal Cloud
+- Temporal dotnet SDK
 - Likely **GitHub Actions** for CI/CD (given the GitHub remote)
 
 ## Getting Started (once source is added)

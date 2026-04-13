@@ -1,0 +1,111 @@
+services:
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"
+    environment:
+      - TEMPORAL_DEFAULT_NAMESPACE=cicd-prodctl
+    networks:
+      - cicd
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+  api:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Api/CicdPipeline.Api.csproj
+    command: ["CicdPipeline.Api.dll"]
+    ports:
+      - "5100:8080"
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+  worker-orchestrator:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.Orchestrator/CicdPipeline.Worker.Orchestrator.csproj
+    command: ["CicdPipeline.Worker.Orchestrator.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+  worker-buildtest:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.BuildTest/CicdPipeline.Worker.BuildTest.csproj
+    command: ["CicdPipeline.Worker.BuildTest.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+  worker-gitversion:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.GitVersion/CicdPipeline.Worker.GitVersion.csproj
+    command: ["CicdPipeline.Worker.GitVersion.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+  worker-publish:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.Publish/CicdPipeline.Worker.Publish.csproj
+    command: ["CicdPipeline.Worker.Publish.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+  worker-deploy:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.Deploy/CicdPipeline.Worker.Deploy.csproj
+    command: ["CicdPipeline.Worker.Deploy.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      - temporal
+    networks:
+      - cicd
+
+networks:
+  cicd:
+    driver: bridge
