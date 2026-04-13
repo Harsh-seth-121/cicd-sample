@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(mkdir -p api hooks components/layout components/pipelines components/pipeline-detail components/trigger pages lib)",
+      "Bash(rm -f App.css App.tsx main.tsx index.css)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

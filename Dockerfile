@@ -16,11 +16,11 @@ COPY src/CicdPipeline.Worker.GitVersion/CicdPipeline.Worker.GitVersion.csproj sr
 COPY src/CicdPipeline.Worker.Publish/CicdPipeline.Worker.Publish.csproj src/CicdPipeline.Worker.Publish/
 COPY src/CicdPipeline.Worker.Deploy/CicdPipeline.Worker.Deploy.csproj src/CicdPipeline.Worker.Deploy/
 
-RUN dotnet restore
+RUN dotnet restore ${PROJECT_PATH}
 
 # Copy all source and build
 COPY src/ src/
-RUN dotnet publish ${PROJECT_PATH} -c Release -o /app/publish --no-restore
+RUN dotnet publish ${PROJECT_PATH} -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime

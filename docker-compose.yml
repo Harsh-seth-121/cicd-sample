@@ -1,10 +1,32 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cicd
+
   temporal:
     image: temporalio/auto-setup:latest
     ports:
       - "7233:7233"
     environment:
-      - TEMPORAL_DEFAULT_NAMESPACE=cicd-prodctl
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - DEFAULT_NAMESPACE=cicd-prodctl
+      - BIND_ON_IP=0.0.0.0
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "temporal operator namespace describe --namespace cicd-prodctl --address localhost:7233 || exit 1"]
       interval: 5s
@@ -137,6 +159,16 @@ services:
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+    networks:
+      - cicd
+
+  dashboard:
+    build:
+      context: src/CicdPipeline.Dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
     networks:
       - cicd
 
