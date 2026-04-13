@@ -4,7 +4,11 @@
       "Bash(npm install:*)",
       "Bash(mkdir -p api hooks components/layout components/pipelines components/pipeline-detail components/trigger pages lib)",
       "Bash(rm -f App.css App.tsx main.tsx index.css)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(head -50 /Users/harshseth/repos/personal-projects/cicd-sample/tests/CicdPipeline.Integration.Tests/*.cs)",
+      "Bash(grep -E \"\\\\.cs$|Controllers\")",
+      "Bash(cat /Users/harshseth/repos/personal-projects/cicd-sample/src/CicdPipeline.ServiceDefaults/*.cs)",
+      "Bash(open /Users/harshseth/repos/personal-projects/cicd-sample/presentation.html)"
     ]
   }
 }
