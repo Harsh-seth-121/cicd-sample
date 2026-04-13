@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CicdPipeline.Workflows\CicdPipeline.Workflows.csproj" />
+    <ProjectReference Include="..\CicdPipeline.ServiceDefaults\CicdPipeline.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

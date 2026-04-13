@@ -1,0 +1,95 @@
+# Detailed Architecture Diagram
+
+```mermaid
+flowchart LR
+    subgraph A[Source Control + Triggers]
+        SCM[Git provider\npush / PR / merge to main]
+        MANUAL[Manual re-run / resume / override]
+        SCHED[Nightly scheduled checks]
+    end
+
+    subgraph B[.NET Entry Layer]
+        API[Webhook Intake API\nASP.NET Core / Minimal API\nstarts workflows]
+        OPS[Ops API / Admin UI\nresume, query, signal, update]
+    end
+
+    subgraph C[Temporal Cloud]
+        NS[Namespace\ncicd-prodctl]
+        TQ1[pipeline-orchestrator]
+        TQ2[build-test]
+        TQ3[gitversion]
+        TQ4[publish]
+        TQ5[deploy]
+        WF1[PipelineIngressWorkflow]
+        WF2[BuildValidationWorkflow]
+        WF3[VersionAndPublishWorkflow]
+        WF4[DeploymentWorkflow]
+    end
+
+    subgraph D[.NET Worker Fleet]
+        W1[Orchestrator Worker\nexecutes Workflow code]
+        W2[Build/Test Activity Worker]
+        W3[GitVersion Activity Worker]
+        W4[Publish Activity Worker]
+        W5[Deploy Activity Worker]
+    end
+
+    subgraph E[External Execution Systems]
+        RUNNER[Runner Pool\nbuild / unit / integration / scans]
+        GV[GitVersion CLI / lib\nsame checked-out repo]
+        REG[Container Registry]
+        DEV[DEV environment]
+        QA[QA environment]
+        NOTIFY[Notifications / ticketing / chat]
+    end
+
+    subgraph F[Observability + Control]
+        UI[Temporal Web UI]
+        CLI[Temporal CLI]
+        METRICS[Metrics / logs / traces]
+        SEARCH[Search Attributes / Visibility]
+    end
+
+    SCM --> API
+    MANUAL --> OPS
+    SCHED --> API
+    API --> WF1
+    OPS --> WF1
+    OPS --> WF4
+
+    WF1 --> TQ1
+    WF2 --> TQ1
+    WF3 --> TQ1
+    WF4 --> TQ1
+
+    TQ1 --> W1
+    WF2 --> TQ2
+    TQ2 --> W2
+    WF3 --> TQ3
+    TQ3 --> W3
+    WF3 --> TQ4
+    TQ4 --> W4
+    WF4 --> TQ5
+    TQ5 --> W5
+
+    W2 --> RUNNER
+    W3 --> GV
+    W4 --> REG
+    W5 --> DEV
+    W5 --> QA
+    W2 --> NOTIFY
+    W4 --> NOTIFY
+    W5 --> NOTIFY
+
+    UI --> NS
+    CLI --> NS
+    W1 --> METRICS
+    W2 --> METRICS
+    W3 --> METRICS
+    W4 --> METRICS
+    W5 --> METRICS
+    WF1 --> SEARCH
+    WF2 --> SEARCH
+    WF3 --> SEARCH
+    WF4 --> SEARCH
+```

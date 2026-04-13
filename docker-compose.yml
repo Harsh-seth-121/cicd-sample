@@ -1,0 +1,145 @@
+services:
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"
+    environment:
+      - TEMPORAL_DEFAULT_NAMESPACE=cicd-prodctl
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator namespace describe --namespace cicd-prodctl --address localhost:7233 || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 24
+      start_period: 30s
+    networks:
+      - cicd
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    depends_on:
+      temporal:
+        condition: service_healthy
+    networks:
+      - cicd
+
+  temporal-init:
+    image: temporalio/admin-tools:latest
+    depends_on:
+      temporal:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdPipelineStatus --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdBranch --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdRepository --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdCommitSha --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdStage --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdPipelineStartedAt --type DateTime || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdSemVer --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdImageDigest --type Keyword || true
+        temporal operator search-attribute create --namespace cicd-prodctl --address temporal:7233 --name CicdTriggerType --type Keyword || true
+        echo "Search attributes registered."
+    networks:
+      - cicd
+
+  api:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Api/CicdPipeline.Api.csproj
+    command: ["CicdPipeline.Api.dll"]
+    ports:
+      - "5100:8080"
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      temporal-init:
+        condition: service_completed_successfully
+    networks:
+      - cicd
+
+  worker-orchestrator:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.Orchestrator/CicdPipeline.Worker.Orchestrator.csproj
+    command: ["CicdPipeline.Worker.Orchestrator.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      temporal-init:
+        condition: service_completed_successfully
+    networks:
+      - cicd
+
+  worker-buildtest:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.BuildTest/CicdPipeline.Worker.BuildTest.csproj
+    command: ["CicdPipeline.Worker.BuildTest.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      temporal-init:
+        condition: service_completed_successfully
+    networks:
+      - cicd
+
+  worker-gitversion:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.GitVersion/CicdPipeline.Worker.GitVersion.csproj
+    command: ["CicdPipeline.Worker.GitVersion.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      temporal-init:
+        condition: service_completed_successfully
+    networks:
+      - cicd
+
+  worker-publish:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.Publish/CicdPipeline.Worker.Publish.csproj
+    command: ["CicdPipeline.Worker.Publish.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      temporal-init:
+        condition: service_completed_successfully
+    networks:
+      - cicd
+
+  worker-deploy:
+    build:
+      context: .
+      args:
+        PROJECT_PATH: src/CicdPipeline.Worker.Deploy/CicdPipeline.Worker.Deploy.csproj
+    command: ["CicdPipeline.Worker.Deploy.dll"]
+    environment:
+      - Temporal__ServerAddress=temporal:7233
+      - Temporal__Namespace=cicd-prodctl
+    depends_on:
+      temporal-init:
+        condition: service_completed_successfully
+    networks:
+      - cicd
+
+networks:
+  cicd:
+    driver: bridge
