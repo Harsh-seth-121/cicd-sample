@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CI/CD Pipeline Orchestrator — Temporal Cloud</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-light: #1e293b;
+    --surface: rgba(255,255,255,0.05);
+    --surface-hover: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.1);
+    --purple: #7c3aed;
+    --purple-light: #a78bfa;
+    --cyan: #22d3ee;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --text: #f1f5f9;
+    --text-dim: #94a3b8;
+    --text-heading: #ffffff;
+    --font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+  }
+
+  .deck {
+    width: 100%; height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    padding: 48px 64px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+    overflow-y: auto;
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+  }
+
+  .slide.no-transition { transition: none !important; }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide.exit-right {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+
+  .slide.exit-left {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  .slide.enter-from-left {
+    transform: translateX(-60px);
+  }
+
+  /* Typography */
+  h1 { font-size: 2.8rem; font-weight: 800; color: var(--text-heading); line-height: 1.15; margin-bottom: 16px; }
+  h2 { font-size: 2rem; font-weight: 700; color: var(--text-heading); margin-bottom: 12px; }
+  h3 { font-size: 1.3rem; font-weight: 600; color: var(--purple-light); margin-bottom: 8px; }
+  p { font-size: 1.05rem; line-height: 1.65; color: var(--text); margin-bottom: 12px; }
+  .subtitle { font-size: 1.25rem; color: var(--text-dim); font-weight: 400; margin-bottom: 24px; }
+  .tag { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 12px; font-size: 0.85rem; color: var(--cyan); margin: 4px 4px 4px 0; }
+  .section-num { font-size: 0.9rem; color: var(--purple-light); text-transform: uppercase; letter-spacing: 3px; font-weight: 600; margin-bottom: 12px; }
+
+  /* Cards */
+  .card-grid { display: grid; gap: 20px; flex: 1; align-content: start; }
+  .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .card-grid.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
+  }
+  .card h3 { margin-bottom: 10px; }
+  .card ul { list-style: none; padding: 0; }
+  .card ul li { padding: 5px 0; font-size: 0.95rem; color: var(--text); position: relative; padding-left: 18px; }
+  .card ul li::before { content: ""; position: absolute; left: 0; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--purple-light); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th { text-align: left; padding: 10px 14px; background: rgba(124,58,237,0.15); color: var(--purple-light); font-weight: 600; border-bottom: 2px solid var(--purple); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: var(--surface-hover); }
+
+  /* Code */
+  code { font-family: var(--mono); background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.88rem; color: var(--cyan); }
+  pre {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+  .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge-amber { background: rgba(251,191,36,0.15); color: var(--amber); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-purple { background: rgba(124,58,237,0.15); color: var(--purple-light); }
+  .badge-cyan { background: rgba(34,211,238,0.15); color: var(--cyan); }
+
+  /* Section divider */
+  .slide.divider {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide.divider h1 { font-size: 3.2rem; margin-bottom: 16px; }
+  .slide.divider .subtitle { font-size: 1.35rem; }
+  .slide.divider::after {
+    content: "";
+    position: absolute;
+    top: calc(50% + 60px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--purple), transparent);
+  }
+
+  /* Title slide */
+  .slide.title-slide {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(ellipse at 30% 50%, rgba(124,58,237,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(34,211,238,0.08) 0%, transparent 60%),
+                linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+  }
+  .slide.title-slide h1 { font-size: 3.5rem; margin-bottom: 12px; }
+
+  /* Mermaid */
+  .mermaid-wrap { flex: 1; display: flex; justify-content: center; align-items: center; overflow: auto; }
+  .mermaid-wrap .mermaid { max-width: 100%; cursor: pointer; }
+  .mermaid-wrap .mermaid:hover { filter: brightness(1.05); }
+
+  /* Diagram zoom overlay */
+  .zoom-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.88);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: zoom-out;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    padding: 24px;
+  }
+  .zoom-overlay.open { opacity: 1; pointer-events: auto; }
+  .zoom-overlay .zoom-content {
+    max-width: 95vw;
+    max-height: 92vh;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .zoom-overlay .zoom-hint {
+    position: absolute;
+    top: 20px;
+    right: 28px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  /* Risk list */
+  .risk-item { display: flex; align-items: flex-start; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+
+  /* Two-col layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; flex: 1; }
+
+  /* Checklist */
+  .checklist li { padding: 8px 0; font-size: 1rem; padding-left: 28px; position: relative; }
+  .checklist li::before { content: "\2713"; position: absolute; left: 0; color: var(--green); font-weight: 700; font-size: 1.1rem; }
+
+  /* Progress & Nav */
+  .progress-bar { position: fixed; bottom: 0; left: 0; height: 3px; background: var(--purple); transition: width 0.3s ease; z-index: 100; }
+  .nav-bar {
+    position: fixed;
+    bottom: 16px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 100;
+    background: rgba(15,23,42,0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+  }
+  .nav-bar button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .nav-bar button:hover { background: var(--surface-hover); }
+  .slide-counter { font-size: 0.85rem; color: var(--text-dim); min-width: 60px; text-align: center; }
+
+  /* Annotations */
+  .annotation {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: rgba(124,58,237,0.08);
+    border-left: 3px solid var(--purple);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.92rem;
+    color: var(--text-dim);
+  }
+
+  /* Scrollbar */
+  .slide::-webkit-scrollbar { width: 6px; }
+  .slide::-webkit-scrollbar-track { background: transparent; }
+  .slide::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Pipeline arrow */
+  .pipeline-arrow { display: flex; align-items: stretch; gap: 0; flex: 1; }
+  .pipeline-arrow .card { flex: 1; border-radius: 12px; position: relative; }
+  .pipeline-connector { width: 32px; display: flex; align-items: center; justify-content: center; color: var(--purple-light); font-size: 1.4rem; flex-shrink: 0; }
+
+  /* Step list */
+  .step-list { counter-reset: step; }
+  .step-list li { list-style: none; padding: 10px 0 10px 48px; position: relative; border-left: 2px solid var(--border); margin-left: 16px; font-size: 0.95rem; }
+  .step-list li::before { counter-increment: step; content: counter(step); position: absolute; left: -15px; top: 8px; width: 28px; height: 28px; border-radius: 50%; background: var(--purple); color: white; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .step-list li:last-child { border-left-color: transparent; }
+
+  /* Phase timeline */
+  .phase-card { border-left: 4px solid var(--purple); }
+  .phase-card.phase-1 { border-left-color: var(--green); }
+  .phase-card.phase-2 { border-left-color: var(--amber); }
+  .phase-card.phase-3 { border-left-color: var(--cyan); }
+
+  /* Staggered fade-in for cards */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide.active .card,
+  .slide.active .risk-item,
+  .slide.active .annotation {
+    animation: fadeInUp 0.35s ease both;
+  }
+  .slide.active .card:nth-child(1) { animation-delay: 0.05s; }
+  .slide.active .card:nth-child(2) { animation-delay: 0.12s; }
+  .slide.active .card:nth-child(3) { animation-delay: 0.19s; }
+  .slide.active .card:nth-child(4) { animation-delay: 0.26s; }
+  .slide.active .card:nth-child(5) { animation-delay: 0.33s; }
+
+  /* Section indicator in top-right */
+  .slide::before {
+    content: attr(data-section);
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    opacity: 0.5;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .slide.divider::before,
+  .slide.title-slide::before { display: none; }
+
+  /* Consistent card height in grids */
+  .card-grid .card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Dense slides — recover space for tables */
+  .slide.dense { padding: 32px 48px; }
+  .slide.dense td, .slide.dense th { padding: 8px 10px; }
+
+  /* Slide 33 — constrain state machine diagrams in 2x2 grid */
+  .slide[data-slide="33"] .card { overflow: hidden; min-height: 0; }
+  .slide[data-slide="33"] .mermaid svg { width: 100%; height: auto; max-height: 30vh; }
+
+  .flex-1 { flex: 1; }
+  .mt-auto { margin-top: auto; }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .gap-12 { gap: 12px; }
+  .text-sm { font-size: 0.88rem; }
+  .text-dim { color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- ======================= SLIDE 1: TITLE ======================= -->
+<section class="slide title-slide active" data-slide="1">
+  <div>
+    <div class="section-num" style="letter-spacing: 5px;">Temporal Cloud</div>
+    <h1 style="font-size: 3.2rem;">CI/CD Pipeline Orchestrator</h1>
+    <p class="subtitle" style="font-size: 1.4rem; margin-bottom: 32px;">Production-Grade Delivery Infrastructure</p>
+    <div>
+      <span class="tag">.NET 8</span>
+      <span class="tag">Temporal Cloud</span>
+      <span class="tag">Docker</span>
+      <span class="tag">React Dashboard</span>
+      <span class="tag">GitHub Actions</span>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 2: THE DELIVERY PROBLEM ======================= -->
+<section class="slide" data-slide="2" data-section="Problem Framing">
+  <div class="section-num">Section 1 &mdash; Problem Framing</div>
+  <h2>What Teams Actually Need</h2>
+  <div class="card-grid cols-3" style="margin-top: 20px;">
+    <div class="card">
+      <h3 style="font-size: 1.5rem;">Confidence</h3>
+      <p>Every commit reaching production has been built, tested, versioned, and verified through identical stages &mdash; no shortcuts, no drift.</p>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 1.5rem; color: var(--cyan);">Visibility</h3>
+      <p>See exactly where every pipeline is, what failed, and why &mdash; without digging through runner logs or parsing webhook payloads.</p>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 1.5rem; color: var(--green);">Control</h3>
+      <p>Pause, resume, cancel, or rerun any pipeline stage without rebuilding from scratch or SSHing into a runner.</p>
+    </div>
+  </div>
+  <div class="annotation" style="margin-top: auto;">
+    Most CI/CD systems solve for the happy path. Production needs the unhappy path handled just as well.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 3: PRODUCTION RISKS ======================= -->
+<section class="slide" data-slide="3" data-section="Problem Framing">
+  <h2>Where Pipelines Break in Production</h2>
+  <div style="margin-top: 16px; flex: 1;">
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--red);"></div>
+      <div><strong>Duplicate SCM events</strong> &mdash; Trigger duplicate workflows, duplicate publishes, and repeated deployments to the same environment</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--red);"></div>
+      <div><strong>Flaky build/test runners</strong> &mdash; Cause cascading retries across long-running work, amplifying cost and latency</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--amber);"></div>
+      <div><strong>Partial publishes</strong> &mdash; Leave orphaned image tags without manifests, or manifests without final digests</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--amber);"></div>
+      <div><strong>DEV failures propagating to QA</strong> &mdash; Broken builds reach higher environments when gates are weak or bypassed</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--amber);"></div>
+      <div><strong>Version drift between build and deploy</strong> &mdash; Pipelines that rebuild introduce non-determinism between what was tested and what was deployed</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--red);"></div>
+      <div><strong>Workflow code changes</strong> &mdash; Non-determinism in orchestration path breaks in-flight pipelines during worker rollout</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 4: ASSUMPTIONS ======================= -->
+<section class="slide" data-slide="4" data-section="Problem Framing">
+  <h2>Design Assumptions &amp; Constraints</h2>
+  <div class="two-col" style="margin-top: 20px;">
+    <div class="card">
+      <h3>We Assume</h3>
+      <ul>
+        <li>Source control is the single source of truth (push, PR, merge, tag)</li>
+        <li>Build and test must complete before versioning</li>
+        <li>Every branch deploys to DEV; only <code>main</code> progresses to QA</li>
+        <li>Container registry is the artifact boundary</li>
+        <li>Operators need real-time intervention capability</li>
+        <li>External systems (runners, registries, deploy tools) perform execution work</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--cyan);">We Constrain</h3>
+      <ul>
+        <li>Publish once, deploy the same image digest forward &mdash; no rebuild drift</li>
+        <li>GitVersion runs only after required gates pass</li>
+        <li>Failures are contained &mdash; a DEV failure never reaches QA</li>
+        <li>Idempotent activities for safe retries</li>
+        <li>Task queues isolate failure domains</li>
+        <li>Deterministic workflow code &mdash; all I/O lives in activities</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 5: CUSTOMER GOALS ======================= -->
+<section class="slide" data-slide="5" data-section="Problem Framing">
+  <h2>Success Looks Like</h2>
+  <div style="margin-top: 24px; flex: 1;">
+    <ul class="checklist" style="list-style: none;">
+      <li><strong>Zero duplicate deployments</strong> from duplicate webhook events</li>
+      <li><strong>Sub-15-minute pipeline</strong> from push to DEV deployment</li>
+      <li><strong>Any failure diagnosable within 60 seconds</strong> via dashboard or Temporal UI</li>
+      <li><strong>Operators can pause, resume, cancel</strong> without SSH access or runner credentials</li>
+      <li><strong>Workflow code can be updated</strong> without breaking in-flight pipelines</li>
+      <li><strong>Full audit trail</strong> via Temporal event history and 9 custom search attributes</li>
+      <li><strong>One command to run locally</strong> &mdash; <code>docker-compose up --build</code></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 6: SECTION DIVIDER ======================= -->
+<section class="slide divider" data-slide="6">
+  <div>
+    <div class="section-num">Section 2</div>
+    <h1>Opinionated Architecture</h1>
+    <p class="subtitle">Why this design, and what we traded for it</p>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 7: SYSTEM CONTEXT ======================= -->
+<section class="slide" data-slide="7" data-section="Architecture">
+  <h2>System Context</h2>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+flowchart TD
+    classDef ext fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d,stroke-width:1px
+    classDef temporal fill:#f7f0ff,stroke:#7a52cc,color:#2f214d,stroke-width:1px
+    classDef worker fill:#eefbf3,stroke:#2d8a57,color:#173524,stroke-width:1px
+    classDef data fill:#fff8e8,stroke:#c48a00,color:#5d4300,stroke-width:1px
+
+    SCM["Source Control<br/>push / PR / merge / tag"]:::ext
+    OPS["Operator / Release Manager"]:::ext
+
+    TEMP["Temporal Cloud<br/>orchestration + history + visibility"]:::temporal
+
+    WORKERS[".NET Worker Fleets<br/>Workflow + Activity workers"]:::worker
+
+    EXEC["External Execution Systems<br/>runners, registry, deploy tools"]:::ext
+    META["Artifact Metadata<br/>manifests, digests, test evidence"]:::data
+    ENVS["DEV and QA Environments"]:::data
+
+    SCM --> TEMP
+    OPS --> TEMP
+    TEMP --> WORKERS
+    WORKERS --> EXEC
+    EXEC --> META
+    EXEC --> ENVS
+    TEMP --> META
+    </pre>
+  </div>
+  <div class="annotation">
+    Temporal Cloud is the orchestration engine. External systems perform all execution work. Workers are the bridge.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 8: COMPONENT ARCHITECTURE ======================= -->
+<section class="slide" data-slide="8" data-section="Architecture">
+  <h2>Component Architecture</h2>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+flowchart LR
+    classDef ext fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d,stroke-width:1px
+    classDef temporal fill:#f7f0ff,stroke:#7a52cc,color:#2f214d,stroke-width:1px
+    classDef worker fill:#eefbf3,stroke:#2d8a57,color:#173524,stroke-width:1px
+    classDef data fill:#fff8e8,stroke:#c48a00,color:#5d4300,stroke-width:1px
+
+    subgraph A["Trigger + Control Plane"]
+        WEBHOOK["Webhook Intake API<br/>ASP.NET Core"]:::ext
+        ADMIN["Ops API / Admin UI"]:::ext
+    end
+
+    subgraph B["Temporal Cloud Namespace: cicd-prodctl"]
+        WF1["PipelineIngressWorkflow"]:::temporal
+        WF2["BuildValidationWorkflow"]:::temporal
+        WF3["VersionAndPublishWorkflow"]:::temporal
+        WF4["DeploymentWorkflow"]:::temporal
+    end
+
+    subgraph C[".NET Worker Fleets"]
+        W1["Orchestrator Worker"]:::worker
+        W2["Build/Test Worker"]:::worker
+        W3["GitVersion Worker"]:::worker
+        W4["Publish Worker"]:::worker
+        W5["Deploy Worker"]:::worker
+    end
+
+    subgraph D["Execution Systems"]
+        RUN["Runner Pool"]:::ext
+        REG["Container Registry"]:::data
+        DEV["DEV Environment"]:::data
+        QA["QA Environment"]:::data
+    end
+
+    WEBHOOK --> WF1
+    ADMIN --> WF1
+    ADMIN --> WF4
+
+    WF1 --> WF2
+    WF2 --> WF3
+    WF3 --> WF4
+
+    W1 -.-> WF1
+    W2 -.-> WF2
+    W3 -.-> WF3
+    W4 -.-> WF3
+    W5 -.-> WF4
+
+    W2 --> RUN
+    W4 --> REG
+    W5 --> DEV
+    W5 --> QA
+    </pre>
+  </div>
+  <div class="annotation">
+    4 workflows, 5 task queues, 5 dedicated workers &mdash; each workflow stage has its own failure domain.
+    Workers use typed <strong>adapters</strong> (Build, Test, GitVersion, Publish, Deploy) to convert workflow intents into external system calls.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 9: E2E FLOW ======================= -->
+<section class="slide" data-slide="9" data-section="Architecture">
+  <h2>End-to-End Pipeline Flow</h2>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+flowchart TD
+    A["Receive trigger<br/>repo + SHA + ref + event"] --> B["Start PipelineIngressWorkflow"]
+    B --> C["Normalize metadata<br/>classify branch / dedup"]
+    C --> D["BuildValidationWorkflow"]
+    D --> D1["Checkout source"]
+    D1 --> D2["Compile / package"]
+    D2 --> D3["Run unit tests"]
+    D3 --> D4["Run integration tests + required scans"]
+    D4 --> E{"All required gates passed?"}
+
+    E -- No --> X["Fail pipeline<br/>record evidence, notify"]
+    E -- Yes --> F["VersionAndPublishWorkflow"]
+    F --> F1["Run GitVersion"]
+    F1 --> F2["Build and push image"]
+    F2 --> F3["Capture digest + write manifest"]
+
+    F3 --> G["DeploymentWorkflow"]
+    G --> G1["Deploy digest to DEV"]
+    G1 --> H{"DEV verification passes?"}
+    H -- No --> Y["Stop failed<br/>retain artifact + diagnostics"]
+    H -- Yes --> I{"Branch == main?"}
+    I -- No --> Z["Success: DEV only"]
+    I -- Yes --> J["Deploy same digest to QA"]
+    J --> K{"QA verification passes?"}
+    K -- No --> Q["Stop failed in QA"]
+    K -- Yes --> R["Success: DEV + QA"]
+    </pre>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 10: THE 4 WORKFLOWS ======================= -->
+<section class="slide" data-slide="10" data-section="Architecture">
+  <h2>Four Workflows, Clear Boundaries</h2>
+  <div class="pipeline-arrow" style="margin-top: 20px;">
+    <div class="card" style="border-top: 3px solid var(--purple);">
+      <h3>PipelineIngress</h3>
+      <p class="text-sm text-dim">Normalize, classify, deduplicate, dispatch child workflows</p>
+      <code class="text-sm">cicd.pipeline.orchestrator</code>
+    </div>
+    <div class="pipeline-connector">&rarr;</div>
+    <div class="card" style="border-top: 3px solid var(--cyan);">
+      <h3 style="color: var(--cyan);">BuildValidation</h3>
+      <p class="text-sm text-dim">Checkout, build, unit tests, integration tests, required scans</p>
+      <code class="text-sm">cicd.build.test</code>
+    </div>
+    <div class="pipeline-connector">&rarr;</div>
+    <div class="card" style="border-top: 3px solid var(--amber);">
+      <h3 style="color: var(--amber);">VersionAndPublish</h3>
+      <p class="text-sm text-dim">GitVersion, image build, registry push, digest capture, manifest</p>
+      <code class="text-sm">cicd.gitversion</code> <code class="text-sm">cicd.publish</code>
+    </div>
+    <div class="pipeline-connector">&rarr;</div>
+    <div class="card" style="border-top: 3px solid var(--green);">
+      <h3 style="color: var(--green);">Deployment</h3>
+      <p class="text-sm text-dim">Deploy to DEV, verify, branch gate, deploy to QA (main only)</p>
+      <code class="text-sm">cicd.deploy</code>
+    </div>
+  </div>
+  <div class="annotation">
+    Each workflow is a Temporal child workflow with its own identity, history, and retry scope. Parent orchestrates the chain.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 11: TASK QUEUE ISOLATION ======================= -->
+<section class="slide" data-slide="11" data-section="Architecture">
+  <h2>Task Queues as Failure Domains</h2>
+  <div class="card-grid cols-5" style="margin-top: 20px;">
+    <div class="card" style="border-top: 3px solid var(--purple); text-align: center;">
+      <h3 style="font-size: 1rem;">Orchestrator</h3>
+      <p class="text-sm text-dim">All 4 workflows + ingress activities</p>
+      <code class="text-sm">cicd.pipeline.<br/>orchestrator</code>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--cyan); text-align: center;">
+      <h3 style="font-size: 1rem; color: var(--cyan);">Build &amp; Test</h3>
+      <p class="text-sm text-dim">Checkout, compile, test, scan</p>
+      <code class="text-sm">cicd.build.<br/>test</code>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--amber); text-align: center;">
+      <h3 style="font-size: 1rem; color: var(--amber);">GitVersion</h3>
+      <p class="text-sm text-dim">Version computation</p>
+      <code class="text-sm">cicd.<br/>gitversion</code>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--amber); text-align: center;">
+      <h3 style="font-size: 1rem; color: var(--amber);">Publish</h3>
+      <p class="text-sm text-dim">Image push, manifest</p>
+      <code class="text-sm">cicd.<br/>publish</code>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--green); text-align: center;">
+      <h3 style="font-size: 1rem; color: var(--green);">Deploy</h3>
+      <p class="text-sm text-dim">DEV &amp; QA deploy + verify</p>
+      <code class="text-sm">cicd.<br/>deploy</code>
+    </div>
+  </div>
+  <div class="annotation" style="margin-top: auto;">
+    <strong>Containment boundaries:</strong> Temporal Cloud holds durable state. Task Queues isolate each failure domain.
+    Publish is the boundary after which deployments consume a fixed digest. DEV gates QA from unstable builds.
+    A flaky runner pool does not block version computation. A registry outage does not fail builds. Each queue scales independently.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 12: BRANCH POLICY ======================= -->
+<section class="slide" data-slide="12" data-section="Architecture">
+  <h2>Branch-Aware Pipeline Policy</h2>
+  <div style="margin-top: 20px; flex: 1;">
+    <table>
+      <thead>
+        <tr>
+          <th>Branch Type</th>
+          <th>Build &amp; Test</th>
+          <th>GitVersion</th>
+          <th>Publish</th>
+          <th>Deploy DEV</th>
+          <th>Deploy QA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>main</code></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+        </tr>
+        <tr>
+          <td><code>feature/*</code></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>release/*</code></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>hotfix/*</code></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-red">No</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="annotation mt-24">
+      All branches go through the full build &rarr; test &rarr; version &rarr; publish &rarr; DEV deploy path.<br/>
+      Only <code>main</code> continues from DEV to QA. This protects QA from unstable feature work.
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 13: SEARCH ATTRIBUTES ======================= -->
+<section class="slide" data-slide="13" data-section="Architecture">
+  <h2>9 Custom Search Attributes</h2>
+  <div style="margin-top: 20px;">
+    <table>
+      <thead>
+        <tr><th>Attribute</th><th>Type</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>CicdPipelineStatus</code></td><td>Keyword</td><td>Current pipeline execution status</td></tr>
+        <tr><td><code>CicdBranch</code></td><td>Keyword</td><td>Git branch name for filtering</td></tr>
+        <tr><td><code>CicdRepository</code></td><td>Keyword</td><td>Repository identifier</td></tr>
+        <tr><td><code>CicdCommitSha</code></td><td>Keyword</td><td>Full commit SHA for traceability</td></tr>
+        <tr><td><code>CicdStage</code></td><td>Keyword</td><td>Current pipeline stage</td></tr>
+        <tr><td><code>CicdPipelineStartedAt</code></td><td>DateTime</td><td>Workflow start timestamp</td></tr>
+        <tr><td><code>CicdSemVer</code></td><td>Keyword</td><td>Computed semantic version</td></tr>
+        <tr><td><code>CicdImageDigest</code></td><td>Keyword</td><td>Immutable container image digest</td></tr>
+        <tr><td><code>CicdTriggerType</code></td><td>Keyword</td><td>webhook, manual, or scheduled</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="annotation mt-24">
+    <strong>Example query:</strong> <code>CicdPipelineStatus = 'Failed' AND CicdBranch = 'main'</code><br/>
+    These power the dashboard, operational queries, alerting rules, and audit reporting.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 14: WHY TEMPORAL ======================= -->
+<section class="slide" data-slide="14" data-section="Architecture">
+  <h2>Why Temporal &mdash; And What We Traded</h2>
+  <div class="two-col" style="margin-top: 20px;">
+    <div class="card" style="border-top: 3px solid var(--green);">
+      <h3 style="color: var(--green);">What We Get</h3>
+      <ul>
+        <li><strong>Durable execution</strong> &mdash; workflows survive worker restarts and infrastructure failures</li>
+        <li><strong>Built-in retry policies</strong> with exponential backoff and heartbeats</li>
+        <li><strong>Signal / Query / Update</strong> for operator control without custom state management</li>
+        <li><strong>Event history</strong> for complete audit trail of every decision</li>
+        <li><strong>Search attributes</strong> for operational visibility at scale</li>
+        <li><strong>Child workflows</strong> for stage isolation and independent retry scopes</li>
+        <li><strong>Versioning</strong> for safe workflow code changes</li>
+        <li><strong>Service accounts with API keys</strong> for clean automation boundaries</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--amber);">
+      <h3 style="color: var(--amber);">What We Accept</h3>
+      <ul>
+        <li><strong>Temporal Cloud dependency</strong> &mdash; managed service as control plane</li>
+        <li><strong>Determinism constraints</strong> &mdash; no I/O in workflow code, all side effects in activities</li>
+        <li><strong>Learning curve</strong> for .NET SDK patterns and replay semantics</li>
+        <li><strong>Additional infrastructure</strong> &mdash; 5 worker fleets to operate</li>
+        <li><strong>Operational complexity</strong> &mdash; more moving parts than a monolithic CI/CD</li>
+      </ul>
+    </div>
+  </div>
+  <div class="annotation mt-auto">
+    <strong>What we intentionally did not choose:</strong> monolithic pipeline runner (Jenkins), event-driven choreography (no central state), custom queue + state machine (rebuild Temporal poorly).
+  </div>
+</section>
+
+<!-- ======================= SLIDE 15: SECTION DIVIDER ======================= -->
+<section class="slide divider" data-slide="15">
+  <div>
+    <div class="section-num">Section 3</div>
+    <h1>Production Readiness</h1>
+    <p class="subtitle">Failure handling, versioning, and observability</p>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 16: FAILURE AMPLIFICATION MAP ======================= -->
+<section class="slide dense" data-slide="16" data-section="Production Readiness">
+  <h2>Failure Amplification Map</h2>
+  <div style="margin-top: 12px; flex: 1; overflow: auto;">
+    <table style="font-size: 0.82rem;">
+      <thead>
+        <tr><th>Failure Source</th><th>How It Amplifies</th><th>Control</th><th>Recovery</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Duplicate SCM events</td>
+          <td>Duplicate workflows, publishes, deployments</td>
+          <td>Idempotency keys + workflow ID deduplication</td>
+          <td>Resume existing execution</td>
+        </tr>
+        <tr>
+          <td>Flaky build/test runners</td>
+          <td>Repeated long-running work, false failures</td>
+          <td>Separate task queues, bounded retries, short timeouts</td>
+          <td>Rerun failed stage only</td>
+        </tr>
+        <tr>
+          <td>Bad repo checkout</td>
+          <td>Wrong version, wrong tags, publish confusion</td>
+          <td>Full history checkout, explicit branch/ref context</td>
+          <td>Fail before publish, fix config</td>
+        </tr>
+        <tr>
+          <td>Partial publish</td>
+          <td>Tag without manifest, or manifest without digest</td>
+          <td>Publish + manifest tracked separately, idempotent writes</td>
+          <td>Replay publish/manifest stage safely</td>
+        </tr>
+        <tr>
+          <td>DEV deploy failure</td>
+          <td>Broken build reaches higher environments</td>
+          <td>QA blocked unless DEV succeeds</td>
+          <td>Hold in DEV-failed state, rerun after fix</td>
+        </tr>
+        <tr>
+          <td>QA deploy failure</td>
+          <td>Unstable release candidate partially progressed</td>
+          <td>No downstream continuation after QA fail</td>
+          <td>Keep artifact + evidence, retry or promote successor</td>
+        </tr>
+        <tr>
+          <td>Workflow code change</td>
+          <td>Non-determinism in orchestration path</td>
+          <td>Replay tests before worker rollout</td>
+          <td>Verify with history replay before shifting traffic</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 17: FAILURE RECOVERY FLOW ======================= -->
+<section class="slide" data-slide="17" data-section="Production Readiness">
+  <h2>Failure Recovery Control Flow</h2>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+flowchart TD
+    A["Stage starts"] --> B{"Transient failure?"}
+    B -- Yes --> C["Retry Activity<br/>bounded attempts + backoff"]
+    C --> D{"Recovered?"}
+    D -- Yes --> E["Continue stage"]
+    D -- No --> F["Mark stage failed"]
+
+    B -- No --> G{"Deterministic / policy failure?"}
+    G -- Yes --> F
+    G -- No --> H["Escalate to operator path"]
+
+    F --> I["Persist evidence<br/>logs, status, search attributes"]
+    I --> J{"Safe to resume from checkpoint?"}
+    J -- Yes --> K["Operator Update / rerun from stage"]
+    J -- No --> L["End failed — require new pipeline"]
+
+    H --> M["Signal / Update workflow"]
+    M --> N["Pause, cancel, override, or resume"]
+    N --> O["Controlled continuation or terminal failure"]
+    </pre>
+  </div>
+  <div class="annotation">
+    Transient failures retry automatically. Deterministic failures fail fast. Everything else escalates to the operator path.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 18: RECOVERY MODEL ======================= -->
+<section class="slide" data-slide="18" data-section="Production Readiness">
+  <h2>Deployment Recovery Model</h2>
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Published
+    Published --> DeployDEV
+    DeployDEV --> DEVHold: DEV deploy or verify fails
+    DeployDEV --> DEVReady: DEV succeeds
+
+    DEVHold --> ManualFix
+    ManualFix --> RedeployDEV
+    RedeployDEV --> DEVHold
+    RedeployDEV --> DEVReady
+
+    DEVReady --> DEVOnlySuccess: branch != main
+    DEVReady --> DeployQA: branch == main
+
+    DeployQA --> QAHold: QA deploy or verify fails
+    DeployQA --> Success: QA succeeds
+
+    QAHold --> ManualFixQA
+    ManualFixQA --> RedeployQA
+    RedeployQA --> QAHold
+    RedeployQA --> Success
+
+    DEVOnlySuccess --> [*]
+    Success --> [*]
+    </pre>
+  </div>
+  <div class="annotation">
+    Failed deployments enter a hold state. Operators can fix and redeploy without starting a new pipeline. The same published digest is reused.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 19: RETRY POLICIES ======================= -->
+<section class="slide dense" data-slide="19" data-section="Production Readiness">
+  <h2>Retry Policies &amp; Timeout Budget</h2>
+  <div style="margin-top: 12px; flex: 1; overflow: auto;">
+    <table style="font-size: 0.85rem;">
+      <thead>
+        <tr><th>Activity</th><th>Timeout</th><th>Heartbeat</th><th>Max Attempts</th><th>Backoff</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Checkout Source</td><td>5 min</td><td>&mdash;</td><td>3</td><td>Exponential</td></tr>
+        <tr><td>Build / Package</td><td>15 min</td><td>60s</td><td>2</td><td>Exponential</td></tr>
+        <tr><td>Unit Tests</td><td>10 min</td><td>60s</td><td>2</td><td>Exponential</td></tr>
+        <tr><td>Integration Tests</td><td>20 min</td><td>120s</td><td>2</td><td>Exponential</td></tr>
+        <tr><td>Required Scans</td><td>15 min</td><td>60s</td><td>2</td><td>Exponential</td></tr>
+        <tr><td>GitVersion</td><td>2 min</td><td>&mdash;</td><td>3</td><td>Exponential</td></tr>
+        <tr><td>Image Build</td><td>20 min</td><td>120s</td><td>2</td><td>Exponential</td></tr>
+        <tr><td>Image Push</td><td>10 min</td><td>60s</td><td>3</td><td>Exponential</td></tr>
+        <tr><td>Deploy to Env</td><td>10 min</td><td>60s</td><td>3</td><td>Exponential</td></tr>
+        <tr><td>Verify Env</td><td>5 min</td><td>30s</td><td>3</td><td>Exponential</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="annotation">
+    Heartbeats detect dead workers. Non-retryable errors (PolicyViolation, AuthenticationError, ConfigurationError) fail fast. Everything else gets bounded exponential backoff.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 20: OPERATOR CONTROLS ======================= -->
+<section class="slide" data-slide="20" data-section="Production Readiness">
+  <h2>Operator Controls</h2>
+  <div class="two-col" style="margin-top: 16px;">
+    <div>
+      <div class="mermaid-wrap" style="align-items: flex-start;">
+        <pre class="mermaid">
+flowchart LR
+    classDef op fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d,stroke-width:1px
+    classDef wf fill:#f7f0ff,stroke:#7a52cc,color:#2f214d,stroke-width:1px
+    classDef act fill:#eefbf3,stroke:#2d8a57,color:#173524,stroke-width:1px
+
+    O1["Operator"]:::op --> Q1["Query status"]:::wf
+    O1 --> S1["Signal pause/cancel"]:::wf
+    O1 --> U1["Update resume"]:::wf
+
+    Q1 --> WF["Temporal Workflow"]:::wf
+    S1 --> WF
+    U1 --> WF
+
+    WF --> A1["Re-dispatch stage"]:::act
+    WF --> A2["Skip blocked path"]:::act
+    WF --> A3["Terminate"]:::act
+        </pre>
+      </div>
+    </div>
+    <div>
+      <h3>API Endpoints</h3>
+      <div style="margin-top: 8px;">
+        <pre style="font-size: 0.8rem;">GET  /api/ops/pipelines/{id}/status
+POST /api/ops/pipelines/{id}/pause
+POST /api/ops/pipelines/{id}/cancel
+POST /api/ops/pipelines/{id}/resume
+POST /api/ops/deployments/start
+GET  /api/ops/pipelines?repo=X&amp;status=Y
+GET  /health
+GET  /health/temporal</pre>
+      </div>
+      <div class="card mt-16" style="padding: 16px;">
+        <h3 style="font-size: 1rem;">Three Temporal Primitives</h3>
+        <ul>
+          <li><strong>Query</strong> &mdash; read current stage, failures, pause state</li>
+          <li><strong>Signal</strong> &mdash; pause or cancel from outside</li>
+          <li><strong>Update</strong> &mdash; validated resume with operator override</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 21: SAFE WORKFLOW CHANGES ======================= -->
+<section class="slide" data-slide="21" data-section="Production Readiness">
+  <h2>Safe Workflow Code Changes</h2>
+  <div class="card-grid cols-3" style="margin-top: 20px;">
+    <div class="card">
+      <h3>Determinism Guarantee</h3>
+      <p class="text-sm">All workflow code is deterministic. Side effects (network calls, file I/O, timers) live exclusively in activities. Temporal replays workflow decisions from event history.</p>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--cyan);">Replay Testing</h3>
+      <p class="text-sm">Before rolling out new worker code, replay existing workflow histories against the new code to verify compatibility. Catches non-determinism before it reaches production.</p>
+    </div>
+    <div class="card">
+      <h3 style="color: var(--green);">Digest-Based Deploys</h3>
+      <p class="text-sm">Published image digests are immutable. The same digest that passed DEV verification is deployed to QA. No rebuild drift. No "works on my machine."</p>
+    </div>
+  </div>
+  <div class="card mt-24" style="border-left: 3px solid var(--amber);">
+    <h3 style="color: var(--amber);">Worker Rollout Strategy</h3>
+    <p class="text-sm">
+      1. Deploy new worker code alongside existing workers<br/>
+      2. Run replay tests against production workflow histories<br/>
+      3. Shift traffic to new workers via Temporal versioning<br/>
+      4. Drain old workers after in-flight workflows complete
+    </p>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 22: SECTION DIVIDER ======================= -->
+<section class="slide divider" data-slide="22">
+  <div>
+    <div class="section-num">Section 4</div>
+    <h1>Phased Path Forward</h1>
+    <p class="subtitle">Three phases from safety to autonomy</p>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 23: PHASE 1 ======================= -->
+<section class="slide" data-slide="23" data-section="Path Forward">
+  <h2>Phase 1 &mdash; Safety &amp; Visibility</h2>
+  <div class="card phase-card phase-1" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="color: var(--green); margin: 0;">Delivered</h3>
+      <span class="badge badge-green">Current State</span>
+    </div>
+    <ul>
+      <li>All 4 workflows operational with correct stage ordering and child workflow orchestration</li>
+      <li>9 search attributes registered and populated on every workflow execution</li>
+      <li>Pipeline deduplication via deterministic workflow IDs</li>
+      <li>Failure containment boundaries enforced &mdash; DEV protects QA</li>
+      <li>React dashboard with real-time pipeline status (3s detail polling, 5s list polling)</li>
+      <li>Operator controls: pause, cancel, resume via REST API and dashboard</li>
+      <li>Docker Compose with 14 services for local development and demo</li>
+      <li>GitHub Actions CI pipeline (build, test, Docker image matrix)</li>
+      <li>Comprehensive test suite: unit tests, workflow tests, integration tests</li>
+      <li>Health check endpoints for API and Temporal connectivity</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 24: PHASE 2 ======================= -->
+<section class="slide" data-slide="24" data-section="Path Forward">
+  <h2>Phase 2 &mdash; Reliability &amp; Scale</h2>
+  <div class="card phase-card phase-2" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="color: var(--amber); margin: 0;">Next</h3>
+      <span class="badge badge-amber">Planned</span>
+    </div>
+    <ul>
+      <li>Replay testing suite for workflow determinism validation before every deploy</li>
+      <li>Worker fleet auto-scaling per task queue based on queue depth and latency</li>
+      <li>Metrics export: workflow latency, activity failure rates, queue depth, heartbeat lag</li>
+      <li>Alert rules based on search attributes and Temporal Cloud metrics</li>
+      <li>Multi-repository support with shared worker pools and per-repo configuration</li>
+      <li>Temporal Cloud namespace isolation: staging namespace for pre-production testing</li>
+      <li>Load testing with concurrent pipeline submissions and failure injection</li>
+      <li>Structured logging with correlation IDs across all workers and API</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 25: PHASE 3 ======================= -->
+<section class="slide" data-slide="25" data-section="Path Forward">
+  <h2>Phase 3 &mdash; Optimization &amp; Autonomy</h2>
+  <div class="card phase-card phase-3" style="margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="color: var(--cyan); margin: 0;">Future</h3>
+      <span class="badge badge-cyan">Roadmap</span>
+    </div>
+    <ul>
+      <li>Auto-rollback on QA verification failure with configurable policy</li>
+      <li>Canary deployment support with progressive traffic shifting</li>
+      <li>Pipeline templates for different project types (library, service, frontend)</li>
+      <li>Self-service onboarding for new repositories &mdash; config-driven, no code changes</li>
+      <li>Cost optimization: worker right-sizing based on queue utilization metrics</li>
+      <li>Advanced operator controls: stage skip, forced promotion, targeted rollback</li>
+      <li>Integration with incident management and change advisory boards</li>
+      <li>Multi-cloud deploy targets (AWS, GCP, Azure) with environment abstraction</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 26: SECTION DIVIDER ======================= -->
+<section class="slide divider" data-slide="26">
+  <div>
+    <div class="section-num">Section 5</div>
+    <h1>Success Criteria</h1>
+    <p class="subtitle">How we measure success, when we step back</p>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 27: MEASURABLE SUCCESS ======================= -->
+<section class="slide" data-slide="27" data-section="Success Criteria">
+  <h2>How We Measure Success</h2>
+  <div class="card-grid cols-2" style="margin-top: 20px;">
+    <div class="card" style="border-top: 3px solid var(--green);">
+      <h3 style="color: var(--green);">Reliability</h3>
+      <ul>
+        <li>Zero duplicate deployments from duplicate webhook events</li>
+        <li>Zero partial publishes &mdash; every publish produces a manifest with a digest</li>
+        <li>Failed pipelines diagnosable within 60 seconds via dashboard or Temporal UI</li>
+        <li>No DEV failure ever propagates to QA</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--cyan);">
+      <h3 style="color: var(--cyan);">Speed</h3>
+      <ul>
+        <li>Push to DEV deploy under 15 minutes for standard builds</li>
+        <li>Push to QA under 20 minutes for <code>main</code></li>
+        <li>Operator pause/resume round-trip under 5 seconds</li>
+        <li>Dashboard reflects stage changes within 3 seconds</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--purple);">
+      <h3>Visibility</h3>
+      <ul>
+        <li>100% of pipelines searchable by repository, branch, status, and commit</li>
+        <li>Dashboard shows real-time stage progression with failure details</li>
+        <li>Every workflow decision recorded in Temporal event history</li>
+        <li>Search attribute queries enable alerting and reporting</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 3px solid var(--amber);">
+      <h3 style="color: var(--amber);">Operator Confidence</h3>
+      <ul>
+        <li>Any pipeline can be paused/resumed/cancelled without SSH</li>
+        <li>Failure evidence preserved in workflow history and search attributes</li>
+        <li>Redeploy from hold state without rebuilding</li>
+        <li>New team members productive with controls within 30 minutes</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 28: WHEN TO STEP BACK ======================= -->
+<section class="slide" data-slide="28" data-section="Success Criteria">
+  <h2>When the System Runs Itself</h2>
+  <p class="subtitle">Maturity indicators for hands-off operation</p>
+  <div style="margin-top: 16px; flex: 1;">
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--green);"></div>
+      <div><strong>Teams trigger pipelines and walk away</strong> &mdash; no babysitting, no refreshing logs</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--green);"></div>
+      <div><strong>Failures self-classify</strong> &mdash; transient retries recover automatically, deterministic failures report immediately</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--green);"></div>
+      <div><strong>Operators intervene &lt; 5% of the time</strong> &mdash; on-call for pipelines is rare, not routine</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--green);"></div>
+      <div><strong>New repositories onboard in minutes</strong> &mdash; config-driven, no code changes required</div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-dot" style="background: var(--green);"></div>
+      <div><strong>Workflow code changes deploy safely</strong> &mdash; replay testing catches issues before production</div>
+    </div>
+  </div>
+  <div class="annotation mt-auto">
+    The goal is not to build the most sophisticated pipeline system. It is to build one that teams trust enough to stop thinking about.
+  </div>
+</section>
+
+<!-- ======================= SLIDE 29: SECTION DIVIDER ======================= -->
+<section class="slide divider" data-slide="29">
+  <div>
+    <div class="section-num">Section 6</div>
+    <h1>Architecture Walkthrough &amp; Demo</h1>
+    <p class="subtitle">Live system running in Docker Compose</p>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 30: DOCKER COMPOSE OVERVIEW ======================= -->
+<section class="slide" data-slide="30" data-section="Demo">
+  <h2>14 Services, One Command</h2>
+  <div class="two-col" style="margin-top: 16px;">
+    <div>
+      <h3>Infrastructure</h3>
+      <div class="card mb-16">
+        <ul>
+          <li><strong>PostgreSQL 16</strong> &mdash; Temporal backend storage</li>
+          <li><strong>Temporal Server</strong> &mdash; auto-setup with namespace <code>cicd-prodctl</code></li>
+          <li><strong>Temporal UI</strong> &mdash; workflow visibility on port <code>8080</code></li>
+          <li><strong>Temporal Init</strong> &mdash; registers 9 search attributes</li>
+        </ul>
+      </div>
+      <h3>Application</h3>
+      <div class="card">
+        <ul>
+          <li><strong>API Server</strong> &mdash; ASP.NET Core on port <code>5100</code></li>
+          <li><strong>5 Workers</strong> &mdash; Orchestrator, BuildTest, GitVersion, Publish, Deploy</li>
+          <li><strong>Dashboard</strong> &mdash; React + nginx on port <code>3001</code></li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <h3>Startup</h3>
+      <pre style="margin-bottom: 16px;">docker-compose up --build</pre>
+      <h3>Access Points</h3>
+      <table>
+        <thead><tr><th>Service</th><th>URL</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard</td><td><code>localhost:3001</code></td></tr>
+          <tr><td>API</td><td><code>localhost:5100</code></td></tr>
+          <tr><td>Temporal UI</td><td><code>localhost:8080</code></td></tr>
+          <tr><td>Temporal gRPC</td><td><code>localhost:7233</code></td></tr>
+        </tbody>
+      </table>
+      <div class="annotation mt-16">
+        All services on a shared Docker bridge network. Workers connect to Temporal via <code>temporal:7233</code>.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 31: DASHBOARD DEMO ======================= -->
+<section class="slide" data-slide="31" data-section="Demo">
+  <h2>Pipeline Dashboard</h2>
+  <div class="mermaid-wrap" style="flex: none;">
+    <pre class="mermaid">
+flowchart TD
+    classDef page fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d,stroke-width:1px
+    classDef comp fill:#eefbf3,stroke:#2d8a57,color:#173524,stroke-width:1px
+    classDef hook fill:#f7f0ff,stroke:#7a52cc,color:#2f214d,stroke-width:1px
+    classDef api fill:#fff8e8,stroke:#c48a00,color:#5d4300,stroke-width:1px
+
+    Shell["AppShell"]:::comp --> HI["HealthIndicator"]:::comp
+    Shell --> DP["DashboardPage"]:::page
+    Shell --> PDP["PipelineDetailPage"]:::page
+
+    DP --> PF["PipelineFilters"]:::comp
+    DP --> PL["PipelineList"]:::comp
+    DP --> TD["TriggerDialog"]:::comp
+
+    PDP --> PD["PipelineDetail"]:::comp
+    PD --> SPB["StageProgressBar"]:::comp
+    PD --> FP["FailurePanel"]:::comp
+    PD --> CB["ControlBar"]:::comp
+
+    PL -.-> UP["usePipelines (5s poll)"]:::hook
+    PD -.-> UPS["usePipelineStatus (3s poll)"]:::hook
+    HI -.-> UH["useHealth (30s poll)"]:::hook
+
+    UP -.-> API["API Client"]:::api
+    UPS -.-> API
+    UH -.-> API
+    CB -.-> API
+    TD -.-> API
+    </pre>
+  </div>
+  <div class="card-grid cols-3 mt-16">
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem;">Pipeline List</h3>
+      <p class="text-sm text-dim">Filter by repo &amp; status. Each row shows StatusBadge with color-coded state.</p>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem; color: var(--cyan);">Stage Progress</h3>
+      <p class="text-sm text-dim">11-stage visual bar from Received through VerifyingQA. Active/completed/failed indicators.</p>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem; color: var(--green);">Operator Controls</h3>
+      <p class="text-sm text-dim">Pause, cancel, resume buttons. Inline error messages. Loading state during mutations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 32: LIVE DEMO FLOW ======================= -->
+<section class="slide" data-slide="32" data-section="Demo">
+  <h2>Demo: Push to Deploy</h2>
+  <div style="margin-top: 16px; flex: 1;">
+    <ol class="step-list">
+      <li>
+        <strong>Start the stack</strong><br/>
+        <pre style="margin-top: 8px; font-size: 0.8rem;">docker-compose up --build</pre>
+      </li>
+      <li>
+        <strong>Trigger a pipeline via webhook</strong><br/>
+        <pre style="margin-top: 8px; font-size: 0.78rem;">curl -X POST http://localhost:5100/api/webhooks/github \
+  -H 'Content-Type: application/json' \
+  -d '{"repository":"test/repo","ref":"refs/heads/main",
+       "commitSha":"abc1234567890","eventType":"push"}'</pre>
+      </li>
+      <li>
+        <strong>Watch the dashboard</strong> &mdash; stages progress from Received through BuildValidation, VersionAndPublish, to Deployment
+      </li>
+      <li>
+        <strong>Open Temporal UI</strong> (<code>localhost:8080</code>) &mdash; see workflow execution history, search attributes populated, child workflow chain
+      </li>
+      <li>
+        <strong>Demonstrate operator control</strong> &mdash; pause a running pipeline from the dashboard, observe Paused state, then resume with operator ID
+      </li>
+      <li>
+        <strong>Show failure handling</strong> &mdash; trigger a pipeline that fails at build stage, inspect FailurePanel with evidence and diagnostic data
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 33: STATE MACHINES ======================= -->
+<section class="slide" data-slide="33" data-section="Demo">
+  <h2>State Machines: Every Stage Accounted For</h2>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; flex: 1; overflow: auto; min-height: 0;">
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem;">Pipeline Ingress</h3>
+      <pre class="mermaid" style="font-size: 0.7rem;">
+stateDiagram-v2
+    [*] --> Received
+    Received --> ValidatingEvent
+    ValidatingEvent --> Invalid
+    ValidatingEvent --> Normalizing
+    Normalizing --> Deduplicate
+    Deduplicate --> DuplicateIgnored
+    Deduplicate --> StartWorkflow
+    StartWorkflow --> Completed
+    Invalid --> [*]
+    DuplicateIgnored --> [*]
+    Completed --> [*]
+      </pre>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem; color: var(--cyan);">Build Validation</h3>
+      <pre class="mermaid" style="font-size: 0.7rem;">
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Checkout
+    Checkout --> Build
+    Build --> UnitTests
+    UnitTests --> IntegrationTests
+    IntegrationTests --> RequiredScans
+    RequiredScans --> ValidationPassed
+    Checkout --> Failed
+    Build --> Failed
+    UnitTests --> Failed
+    IntegrationTests --> Failed
+    RequiredScans --> Failed
+    ValidationPassed --> [*]
+    Failed --> [*]
+      </pre>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem; color: var(--amber);">Version &amp; Publish</h3>
+      <pre class="mermaid" style="font-size: 0.7rem;">
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> LoadRepoContext
+    LoadRepoContext --> ComputeVersion
+    ComputeVersion --> PersistMetadata
+    PersistMetadata --> BuildImage
+    BuildImage --> PushImage
+    PushImage --> CaptureDigest
+    CaptureDigest --> WriteManifest
+    WriteManifest --> Published
+    LoadRepoContext --> Failed
+    ComputeVersion --> Failed
+    BuildImage --> Failed
+    PushImage --> Failed
+    Published --> [*]
+    Failed --> [*]
+      </pre>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <h3 style="font-size: 0.95rem; color: var(--green);">Deployment</h3>
+      <pre class="mermaid" style="font-size: 0.7rem;">
+stateDiagram-v2
+    [*] --> Published
+    Published --> DeployDEV
+    DeployDEV --> VerifyDEV
+    DeployDEV --> Failed
+    VerifyDEV --> DEVReady
+    VerifyDEV --> Failed
+    DEVReady --> SuccessDEVOnly
+    DEVReady --> DeployQA
+    DeployQA --> VerifyQA
+    DeployQA --> Failed
+    VerifyQA --> SuccessAll
+    VerifyQA --> Failed
+    SuccessDEVOnly --> [*]
+    SuccessAll --> [*]
+    Failed --> [*]
+      </pre>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SLIDE 34: CLOSING ======================= -->
+<section class="slide title-slide" data-slide="34">
+  <div>
+    <h1 style="font-size: 3rem; margin-bottom: 24px;">Thank You</h1>
+    <p class="subtitle" style="font-size: 1.2rem; margin-bottom: 28px;">Production-grade CI/CD orchestration with Temporal Cloud</p>
+    <div style="display: flex; gap: 32px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap;">
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--green);">4</div>
+        <div class="text-sm text-dim">Workflows</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--cyan);">5</div>
+        <div class="text-sm text-dim">Task Queues</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--amber);">14</div>
+        <div class="text-sm text-dim">Docker Services</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--purple-light);">9</div>
+        <div class="text-sm text-dim">Search Attributes</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+      <div class="card" style="padding: 16px 24px; text-align: center;">
+        <p class="text-sm text-dim" style="margin-bottom: 4px;">Dashboard</p>
+        <code>localhost:3001</code>
+      </div>
+      <div class="card" style="padding: 16px 24px; text-align: center;">
+        <p class="text-sm text-dim" style="margin-bottom: 4px;">API</p>
+        <code>localhost:5100</code>
+      </div>
+      <div class="card" style="padding: 16px 24px; text-align: center;">
+        <p class="text-sm text-dim" style="margin-bottom: 4px;">Temporal UI</p>
+        <code>localhost:8080</code>
+      </div>
+    </div>
+    <div style="margin-top: 40px;">
+      <span class="tag">.NET 8</span>
+      <span class="tag">Temporal Cloud</span>
+      <span class="tag">4 Workflows</span>
+      <span class="tag">5 Workers</span>
+      <span class="tag">14 Docker Services</span>
+      <span class="tag">React Dashboard</span>
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<!-- Zoom overlay for diagrams -->
+<div class="zoom-overlay" id="zoomOverlay">
+  <span class="zoom-hint">Click anywhere or press Esc to close</span>
+  <div class="zoom-content" id="zoomContent"></div>
+</div>
+
+<!-- Navigation -->
+<div class="progress-bar" id="progress"></div>
+<div class="nav-bar">
+  <button id="prevBtn" title="Previous (Left Arrow)">&larr;</button>
+  <span class="slide-counter" id="counter">1 / 34</span>
+  <button id="nextBtn" title="Next (Right Arrow)">&rarr;</button>
+</div>
+
+<script>
+  // Mermaid init — deferred rendering so diagrams render at correct size
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#7c3aed',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#7c3aed',
+      lineColor: '#64748b',
+      secondaryColor: '#1e293b',
+      tertiaryColor: '#0f172a',
+      noteBkgColor: '#1e293b',
+      noteTextColor: '#e2e8f0',
+      fontSize: '14px'
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    stateDiagram: { fontSize: 12 }
+  });
+
+  // Track which slides have had their mermaid diagrams rendered
+  const renderedSlides = new Set();
+
+  async function renderMermaidInSlide(slideEl) {
+    const slideIndex = Array.from(slides).indexOf(slideEl);
+    if (renderedSlides.has(slideIndex)) return;
+
+    const mermaidEls = slideEl.querySelectorAll('.mermaid:not([data-processed])');
+    if (mermaidEls.length === 0) {
+      renderedSlides.add(slideIndex);
+      return;
+    }
+
+    renderedSlides.add(slideIndex);
+    try {
+      await mermaid.run({ nodes: Array.from(mermaidEls) });
+      markMermaidClickable();
+    } catch (e) {
+      console.warn('Mermaid render error on slide', slideIndex + 1, e);
+    }
+  }
+
+  // Slide navigation
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const total = slides.length;
+  let current = 0;
+
+  function updateIndicators() {
+    counter.textContent = (current + 1) + ' / ' + total;
+    progress.style.width = ((current + 1) / total * 100) + '%';
+  }
+
+  function goTo(n) {
+    if (n < 0 || n >= total || n === current) return;
+    const goingForward = n > current;
+    const leaving = slides[current];
+    const entering = slides[n];
+
+    // Exit the current slide
+    leaving.classList.remove('active');
+    leaving.classList.add(goingForward ? 'exit-left' : 'exit-right');
+    setTimeout(() => {
+      leaving.classList.remove('exit-left', 'exit-right');
+    }, 420);
+
+    // Position the incoming slide off-screen on the correct side (no transition),
+    // then animate it in on the next frame.
+    if (!goingForward) {
+      entering.classList.add('no-transition', 'enter-from-left');
+      // Force reflow so the browser registers the no-transition position
+      entering.offsetHeight;
+      entering.classList.remove('no-transition', 'enter-from-left');
+    }
+
+    entering.classList.add('active');
+    renderMermaidInSlide(entering);
+    current = n;
+    updateIndicators();
+    history.replaceState(null, '', '#slide-' + (current + 1));
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+
+  document.addEventListener('keydown', function(e) {
+    // If zoom overlay is open, only handle Esc
+    if (zoomOverlay.classList.contains('open')) {
+      if (e.key === 'Escape') closeZoom();
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    if (e.key === 'Escape') { e.preventDefault(); closeZoom(); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', function(e) {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  });
+
+  // Hash navigation on load
+  (function hashNav() {
+    const match = window.location.hash.match(/slide-(\d+)/);
+    if (match) {
+      const n = parseInt(match[1], 10) - 1;
+      if (n >= 0 && n < total && n !== 0) {
+        slides[0].classList.remove('active');
+        slides[n].classList.add('active');
+        current = n;
+        updateIndicators();
+        renderMermaidInSlide(slides[current]);
+      }
+    }
+  })();
+
+  // Init progress
+  updateIndicators();
+
+  // Render mermaid diagrams on the initially active slide
+  renderMermaidInSlide(slides[current]);
+
+  // ---- Diagram zoom ----
+  const zoomOverlay = document.getElementById('zoomOverlay');
+  const zoomContent = document.getElementById('zoomContent');
+
+  function openZoom(svgEl) {
+    var clone = svgEl.cloneNode(true);
+    clone.removeAttribute('style');
+
+    // Ensure the SVG scales properly via viewBox instead of fixed dimensions
+    var w = parseFloat(svgEl.getAttribute('width') || svgEl.getBoundingClientRect().width);
+    var h = parseFloat(svgEl.getAttribute('height') || svgEl.getBoundingClientRect().height);
+    if (w && h && !clone.getAttribute('viewBox')) {
+      clone.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    }
+    clone.removeAttribute('width');
+    clone.removeAttribute('height');
+
+    clone.style.maxWidth = '92vw';
+    clone.style.maxHeight = '88vh';
+    clone.style.width = '100%';
+    clone.style.height = 'auto';
+    zoomContent.innerHTML = '';
+    zoomContent.appendChild(clone);
+    zoomOverlay.classList.add('open');
+  }
+
+  function closeZoom() {
+    zoomOverlay.classList.remove('open');
+    zoomContent.innerHTML = '';
+  }
+
+  zoomOverlay.addEventListener('click', closeZoom);
+
+  // Use event delegation on the entire deck so it works regardless of
+  // when mermaid finishes rendering or replaces DOM elements.
+  document.getElementById('deck').addEventListener('click', function(e) {
+    // Walk up from the click target to find an SVG inside a mermaid container
+    var target = e.target;
+    var svg = null;
+    while (target && target !== this) {
+      if (target.tagName === 'svg') { svg = target; }
+      if ((target.hasAttribute && target.hasAttribute('data-processed')) ||
+          (target.classList && target.classList.contains('mermaid'))) {
+        // Found a mermaid container; use the SVG we found inside it
+        if (svg) {
+          e.stopPropagation();
+          openZoom(svg);
+          return;
+        }
+      }
+      target = target.parentElement;
+    }
+  });
+
+  // Add pointer cursor to all mermaid containers after render
+  function markMermaidClickable() {
+    document.querySelectorAll('.mermaid svg, [data-processed] svg').forEach(function(svg) {
+      svg.style.cursor = 'pointer';
+    });
+  }
+  // Observe for late renders as a safety net
+  new MutationObserver(function() { setTimeout(markMermaidClickable, 200); })
+    .observe(document.getElementById('deck'), { childList: true, subtree: true });
+</script>
+</body>
+</html>
