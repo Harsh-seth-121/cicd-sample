@@ -8,7 +8,18 @@
       "Bash(head -50 /Users/harshseth/repos/personal-projects/cicd-sample/tests/CicdPipeline.Integration.Tests/*.cs)",
       "Bash(grep -E \"\\\\.cs$|Controllers\")",
       "Bash(cat /Users/harshseth/repos/personal-projects/cicd-sample/src/CicdPipeline.ServiceDefaults/*.cs)",
-      "Bash(open /Users/harshseth/repos/personal-projects/cicd-sample/presentation.html)"
+      "Bash(open /Users/harshseth/repos/personal-projects/cicd-sample/presentation.html)",
+      "Bash(npx --yes @mermaid-js/mermaid-cli --version)",
+      "Bash(python3 -c \"import pptx; print\\('pptx:', pptx.__version__\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -c \"import pptx; print\\('pptx version:', pptx.__version__\\)\")",
+      "Bash(python3 slides_build/extract_mermaid.py)",
+      "Bash(ls -la /Users/harshseth/repos/personal-projects/cicd-sample/slides_build/diagrams/*.png)",
+      "Bash(awk '{print $5, $NF}')",
+      "Bash(python3 slides_build/build_pptx.py)",
+      "Bash(npm list:*)",
+      "Bash(mmdc -i 03_end_to_end_workflow.md -o 03_end_to_end_workflow.svg -e transparent)",
+      "Bash(mmdc -i 03_end_to_end_workflow.md -o 03_end_to_end_workflow.svg -e svg -b transparent)"
     ]
   }
 }

@@ -92,7 +92,7 @@
   .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
   .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
   .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-  .card-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+  .card-grid.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -144,13 +144,12 @@
   .slide.divider::after {
     content: "";
     position: absolute;
-    bottom: 40%;
+    top: calc(50% + 60px);
     left: 50%;
     transform: translateX(-50%);
     width: 120px;
     height: 3px;
     background: linear-gradient(90deg, transparent, var(--purple), transparent);
-    margin-top: 32px;
   }
 
   /* Title slide */
@@ -279,6 +278,51 @@
   .phase-card.phase-2 { border-left-color: var(--amber); }
   .phase-card.phase-3 { border-left-color: var(--cyan); }
 
+  /* Staggered fade-in for cards */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide.active .card,
+  .slide.active .risk-item,
+  .slide.active .annotation {
+    animation: fadeInUp 0.35s ease both;
+  }
+  .slide.active .card:nth-child(1) { animation-delay: 0.05s; }
+  .slide.active .card:nth-child(2) { animation-delay: 0.12s; }
+  .slide.active .card:nth-child(3) { animation-delay: 0.19s; }
+  .slide.active .card:nth-child(4) { animation-delay: 0.26s; }
+  .slide.active .card:nth-child(5) { animation-delay: 0.33s; }
+
+  /* Section indicator in top-right */
+  .slide::before {
+    content: attr(data-section);
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    opacity: 0.5;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .slide.divider::before,
+  .slide.title-slide::before { display: none; }
+
+  /* Consistent card height in grids */
+  .card-grid .card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Dense slides — recover space for tables */
+  .slide.dense { padding: 32px 48px; }
+  .slide.dense td, .slide.dense th { padding: 8px 10px; }
+
+  /* Slide 33 — constrain state machine diagrams in 2x2 grid */
+  .slide[data-slide="33"] .card { overflow: hidden; min-height: 0; }
+  .slide[data-slide="33"] .mermaid svg { width: 100%; height: auto; max-height: 30vh; }
+
   .flex-1 { flex: 1; }
   .mt-auto { margin-top: auto; }
   .mt-8 { margin-top: 8px; }
@@ -312,7 +356,7 @@
 </section>
 
 <!-- ======================= SLIDE 2: THE DELIVERY PROBLEM ======================= -->
-<section class="slide" data-slide="2">
+<section class="slide" data-slide="2" data-section="Problem Framing">
   <div class="section-num">Section 1 &mdash; Problem Framing</div>
   <h2>What Teams Actually Need</h2>
   <div class="card-grid cols-3" style="margin-top: 20px;">
@@ -335,7 +379,7 @@
 </section>
 
 <!-- ======================= SLIDE 3: PRODUCTION RISKS ======================= -->
-<section class="slide" data-slide="3">
+<section class="slide" data-slide="3" data-section="Problem Framing">
   <h2>Where Pipelines Break in Production</h2>
   <div style="margin-top: 16px; flex: 1;">
     <div class="risk-item">
@@ -366,7 +410,7 @@
 </section>
 
 <!-- ======================= SLIDE 4: ASSUMPTIONS ======================= -->
-<section class="slide" data-slide="4">
+<section class="slide" data-slide="4" data-section="Problem Framing">
   <h2>Design Assumptions &amp; Constraints</h2>
   <div class="two-col" style="margin-top: 20px;">
     <div class="card">
@@ -395,7 +439,7 @@
 </section>
 
 <!-- ======================= SLIDE 5: CUSTOMER GOALS ======================= -->
-<section class="slide" data-slide="5">
+<section class="slide" data-slide="5" data-section="Problem Framing">
   <h2>Success Looks Like</h2>
   <div style="margin-top: 24px; flex: 1;">
     <ul class="checklist" style="list-style: none;">
@@ -420,21 +464,26 @@
 </section>
 
 <!-- ======================= SLIDE 7: SYSTEM CONTEXT ======================= -->
-<section class="slide" data-slide="7">
+<section class="slide" data-slide="7" data-section="Architecture">
   <h2>System Context</h2>
   <div class="mermaid-wrap">
     <pre class="mermaid">
 flowchart TD
-    SCM["Source Control\npush / PR / merge / tag"]
-    OPS["Operator / Release Manager"]
+    classDef ext fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d,stroke-width:1px
+    classDef temporal fill:#f7f0ff,stroke:#7a52cc,color:#2f214d,stroke-width:1px
+    classDef worker fill:#eefbf3,stroke:#2d8a57,color:#173524,stroke-width:1px
+    classDef data fill:#fff8e8,stroke:#c48a00,color:#5d4300,stroke-width:1px
 
-    TEMP["Temporal Cloud\norchestration + history + visibility"]
+    SCM["Source Control<br/>push / PR / merge / tag"]:::ext
+    OPS["Operator / Release Manager"]:::ext
 
-    WORKERS[".NET Worker Fleets\nWorkflow + Activity workers"]
+    TEMP["Temporal Cloud<br/>orchestration + history + visibility"]:::temporal
 
-    EXEC["External Execution Systems\nrunners, registry, deploy tools"]
-    META["Artifact Metadata\nmanifests, digests, test evidence"]
-    ENVS["DEV and QA Environments"]
+    WORKERS[".NET Worker Fleets<br/>Workflow + Activity workers"]:::worker
+
+    EXEC["External Execution Systems<br/>runners, registry, deploy tools"]:::ext
+    META["Artifact Metadata<br/>manifests, digests, test evidence"]:::data
+    ENVS["DEV and QA Environments"]:::data
 
     SCM --> TEMP
     OPS --> TEMP
@@ -443,14 +492,6 @@ flowchart TD
     EXEC --> META
     EXEC --> ENVS
     TEMP --> META
-
-    style SCM fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d
-    style OPS fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d
-    style TEMP fill:#f7f0ff,stroke:#7a52cc,color:#2f214d
-    style WORKERS fill:#eefbf3,stroke:#2d8a57,color:#173524
-    style EXEC fill:#eef6ff,stroke:#4f81bd,color:#1f2d3d
-    style META fill:#fff8e8,stroke:#c48a00,color:#5d4300
-    style ENVS fill:#fff8e8,stroke:#c48a00,color:#5d4300
     </pre>
   </div>
   <div class="annotation">
@@ -459,7 +500,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 8: COMPONENT ARCHITECTURE ======================= -->
-<section class="slide" data-slide="8">
+<section class="slide" data-slide="8" data-section="Architecture">
   <h2>Component Architecture</h2>
   <div class="mermaid-wrap">
     <pre class="mermaid">
@@ -518,11 +559,12 @@ flowchart LR
   </div>
   <div class="annotation">
     4 workflows, 5 task queues, 5 dedicated workers &mdash; each workflow stage has its own failure domain.
+    Workers use typed <strong>adapters</strong> (Build, Test, GitVersion, Publish, Deploy) to convert workflow intents into external system calls.
   </div>
 </section>
 
 <!-- ======================= SLIDE 9: E2E FLOW ======================= -->
-<section class="slide" data-slide="9">
+<section class="slide" data-slide="9" data-section="Architecture">
   <h2>End-to-End Pipeline Flow</h2>
   <div class="mermaid-wrap">
     <pre class="mermaid">
@@ -557,7 +599,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 10: THE 4 WORKFLOWS ======================= -->
-<section class="slide" data-slide="10">
+<section class="slide" data-slide="10" data-section="Architecture">
   <h2>Four Workflows, Clear Boundaries</h2>
   <div class="pipeline-arrow" style="margin-top: 20px;">
     <div class="card" style="border-top: 3px solid var(--purple);">
@@ -590,7 +632,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 11: TASK QUEUE ISOLATION ======================= -->
-<section class="slide" data-slide="11">
+<section class="slide" data-slide="11" data-section="Architecture">
   <h2>Task Queues as Failure Domains</h2>
   <div class="card-grid cols-5" style="margin-top: 20px;">
     <div class="card" style="border-top: 3px solid var(--purple); text-align: center;">
@@ -620,12 +662,14 @@ flowchart TD
     </div>
   </div>
   <div class="annotation" style="margin-top: auto;">
-    <strong>Key insight:</strong> A flaky runner pool does not block version computation. A registry outage does not fail builds. Each queue scales independently.
+    <strong>Containment boundaries:</strong> Temporal Cloud holds durable state. Task Queues isolate each failure domain.
+    Publish is the boundary after which deployments consume a fixed digest. DEV gates QA from unstable builds.
+    A flaky runner pool does not block version computation. A registry outage does not fail builds. Each queue scales independently.
   </div>
 </section>
 
 <!-- ======================= SLIDE 12: BRANCH POLICY ======================= -->
-<section class="slide" data-slide="12">
+<section class="slide" data-slide="12" data-section="Architecture">
   <h2>Branch-Aware Pipeline Policy</h2>
   <div style="margin-top: 20px; flex: 1;">
     <table>
@@ -682,7 +726,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 13: SEARCH ATTRIBUTES ======================= -->
-<section class="slide" data-slide="13">
+<section class="slide" data-slide="13" data-section="Architecture">
   <h2>9 Custom Search Attributes</h2>
   <div style="margin-top: 20px;">
     <table>
@@ -709,7 +753,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 14: WHY TEMPORAL ======================= -->
-<section class="slide" data-slide="14">
+<section class="slide" data-slide="14" data-section="Architecture">
   <h2>Why Temporal &mdash; And What We Traded</h2>
   <div class="two-col" style="margin-top: 20px;">
     <div class="card" style="border-top: 3px solid var(--green);">
@@ -722,6 +766,7 @@ flowchart TD
         <li><strong>Search attributes</strong> for operational visibility at scale</li>
         <li><strong>Child workflows</strong> for stage isolation and independent retry scopes</li>
         <li><strong>Versioning</strong> for safe workflow code changes</li>
+        <li><strong>Service accounts with API keys</strong> for clean automation boundaries</li>
       </ul>
     </div>
     <div class="card" style="border-top: 3px solid var(--amber);">
@@ -750,7 +795,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 16: FAILURE AMPLIFICATION MAP ======================= -->
-<section class="slide" data-slide="16">
+<section class="slide dense" data-slide="16" data-section="Production Readiness">
   <h2>Failure Amplification Map</h2>
   <div style="margin-top: 12px; flex: 1; overflow: auto;">
     <table style="font-size: 0.82rem;">
@@ -806,7 +851,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 17: FAILURE RECOVERY FLOW ======================= -->
-<section class="slide" data-slide="17">
+<section class="slide" data-slide="17" data-section="Production Readiness">
   <h2>Failure Recovery Control Flow</h2>
   <div class="mermaid-wrap">
     <pre class="mermaid">
@@ -837,7 +882,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 18: RECOVERY MODEL ======================= -->
-<section class="slide" data-slide="18">
+<section class="slide" data-slide="18" data-section="Production Readiness">
   <h2>Deployment Recovery Model</h2>
   <div class="mermaid-wrap">
     <pre class="mermaid">
@@ -873,7 +918,7 @@ stateDiagram-v2
 </section>
 
 <!-- ======================= SLIDE 19: RETRY POLICIES ======================= -->
-<section class="slide" data-slide="19">
+<section class="slide dense" data-slide="19" data-section="Production Readiness">
   <h2>Retry Policies &amp; Timeout Budget</h2>
   <div style="margin-top: 12px; flex: 1; overflow: auto;">
     <table style="font-size: 0.85rem;">
@@ -900,7 +945,7 @@ stateDiagram-v2
 </section>
 
 <!-- ======================= SLIDE 20: OPERATOR CONTROLS ======================= -->
-<section class="slide" data-slide="20">
+<section class="slide" data-slide="20" data-section="Production Readiness">
   <h2>Operator Controls</h2>
   <div class="two-col" style="margin-top: 16px;">
     <div>
@@ -950,7 +995,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 21: SAFE WORKFLOW CHANGES ======================= -->
-<section class="slide" data-slide="21">
+<section class="slide" data-slide="21" data-section="Production Readiness">
   <h2>Safe Workflow Code Changes</h2>
   <div class="card-grid cols-3" style="margin-top: 20px;">
     <div class="card">
@@ -987,7 +1032,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 23: PHASE 1 ======================= -->
-<section class="slide" data-slide="23">
+<section class="slide" data-slide="23" data-section="Path Forward">
   <h2>Phase 1 &mdash; Safety &amp; Visibility</h2>
   <div class="card phase-card phase-1" style="margin-top: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1010,7 +1055,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 24: PHASE 2 ======================= -->
-<section class="slide" data-slide="24">
+<section class="slide" data-slide="24" data-section="Path Forward">
   <h2>Phase 2 &mdash; Reliability &amp; Scale</h2>
   <div class="card phase-card phase-2" style="margin-top: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1031,7 +1076,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 25: PHASE 3 ======================= -->
-<section class="slide" data-slide="25">
+<section class="slide" data-slide="25" data-section="Path Forward">
   <h2>Phase 3 &mdash; Optimization &amp; Autonomy</h2>
   <div class="card phase-card phase-3" style="margin-top: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1061,7 +1106,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 27: MEASURABLE SUCCESS ======================= -->
-<section class="slide" data-slide="27">
+<section class="slide" data-slide="27" data-section="Success Criteria">
   <h2>How We Measure Success</h2>
   <div class="card-grid cols-2" style="margin-top: 20px;">
     <div class="card" style="border-top: 3px solid var(--green);">
@@ -1104,7 +1149,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 28: WHEN TO STEP BACK ======================= -->
-<section class="slide" data-slide="28">
+<section class="slide" data-slide="28" data-section="Success Criteria">
   <h2>When the System Runs Itself</h2>
   <p class="subtitle">Maturity indicators for hands-off operation</p>
   <div style="margin-top: 16px; flex: 1;">
@@ -1144,7 +1189,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 30: DOCKER COMPOSE OVERVIEW ======================= -->
-<section class="slide" data-slide="30">
+<section class="slide" data-slide="30" data-section="Demo">
   <h2>14 Services, One Command</h2>
   <div class="two-col" style="margin-top: 16px;">
     <div>
@@ -1187,7 +1232,7 @@ GET  /health/temporal</pre>
 </section>
 
 <!-- ======================= SLIDE 31: DASHBOARD DEMO ======================= -->
-<section class="slide" data-slide="31">
+<section class="slide" data-slide="31" data-section="Demo">
   <h2>Pipeline Dashboard</h2>
   <div class="mermaid-wrap" style="flex: none;">
     <pre class="mermaid">
@@ -1238,7 +1283,7 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 32: LIVE DEMO FLOW ======================= -->
-<section class="slide" data-slide="32">
+<section class="slide" data-slide="32" data-section="Demo">
   <h2>Demo: Push to Deploy</h2>
   <div style="margin-top: 16px; flex: 1;">
     <ol class="step-list">
@@ -1270,9 +1315,9 @@ flowchart TD
 </section>
 
 <!-- ======================= SLIDE 33: STATE MACHINES ======================= -->
-<section class="slide" data-slide="33">
+<section class="slide" data-slide="33" data-section="Demo">
   <h2>State Machines: Every Stage Accounted For</h2>
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; flex: 1; overflow: auto;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; flex: 1; overflow: auto; min-height: 0;">
     <div class="card" style="padding: 16px;">
       <h3 style="font-size: 0.95rem;">Pipeline Ingress</h3>
       <pre class="mermaid" style="font-size: 0.7rem;">
@@ -1359,7 +1404,25 @@ stateDiagram-v2
 <section class="slide title-slide" data-slide="34">
   <div>
     <h1 style="font-size: 3rem; margin-bottom: 24px;">Thank You</h1>
-    <p class="subtitle" style="font-size: 1.2rem; margin-bottom: 32px;">Production-grade CI/CD orchestration with Temporal Cloud</p>
+    <p class="subtitle" style="font-size: 1.2rem; margin-bottom: 28px;">Production-grade CI/CD orchestration with Temporal Cloud</p>
+    <div style="display: flex; gap: 32px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap;">
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--green);">4</div>
+        <div class="text-sm text-dim">Workflows</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--cyan);">5</div>
+        <div class="text-sm text-dim">Task Queues</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--amber);">14</div>
+        <div class="text-sm text-dim">Docker Services</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 2.2rem; font-weight: 800; color: var(--purple-light);">9</div>
+        <div class="text-sm text-dim">Search Attributes</div>
+      </div>
+    </div>
     <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
       <div class="card" style="padding: 16px 24px; text-align: center;">
         <p class="text-sm text-dim" style="margin-bottom: 4px;">Dashboard</p>
@@ -1402,9 +1465,9 @@ stateDiagram-v2
 </div>
 
 <script>
-  // Mermaid init
+  // Mermaid init — deferred rendering so diagrams render at correct size
   mermaid.initialize({
-    startOnLoad: true,
+    startOnLoad: false,
     theme: 'dark',
     themeVariables: {
       primaryColor: '#7c3aed',
@@ -1420,6 +1483,28 @@ stateDiagram-v2
     flowchart: { curve: 'basis', padding: 12 },
     stateDiagram: { fontSize: 12 }
   });
+
+  // Track which slides have had their mermaid diagrams rendered
+  const renderedSlides = new Set();
+
+  async function renderMermaidInSlide(slideEl) {
+    const slideIndex = Array.from(slides).indexOf(slideEl);
+    if (renderedSlides.has(slideIndex)) return;
+
+    const mermaidEls = slideEl.querySelectorAll('.mermaid:not([data-processed])');
+    if (mermaidEls.length === 0) {
+      renderedSlides.add(slideIndex);
+      return;
+    }
+
+    renderedSlides.add(slideIndex);
+    try {
+      await mermaid.run({ nodes: Array.from(mermaidEls) });
+      markMermaidClickable();
+    } catch (e) {
+      console.warn('Mermaid render error on slide', slideIndex + 1, e);
+    }
+  }
 
   // Slide navigation
   const slides = document.querySelectorAll('.slide');
@@ -1456,6 +1541,7 @@ stateDiagram-v2
     }
 
     entering.classList.add('active');
+    renderMermaidInSlide(entering);
     current = n;
     updateIndicators();
     history.replaceState(null, '', '#slide-' + (current + 1));
@@ -1502,6 +1588,7 @@ stateDiagram-v2
         slides[n].classList.add('active');
         current = n;
         updateIndicators();
+        renderMermaidInSlide(slides[current]);
       }
     }
   })();
@@ -1509,17 +1596,29 @@ stateDiagram-v2
   // Init progress
   updateIndicators();
 
+  // Render mermaid diagrams on the initially active slide
+  renderMermaidInSlide(slides[current]);
+
   // ---- Diagram zoom ----
   const zoomOverlay = document.getElementById('zoomOverlay');
   const zoomContent = document.getElementById('zoomContent');
 
   function openZoom(svgEl) {
-    // Clone the SVG and scale it up for the overlay
     var clone = svgEl.cloneNode(true);
     clone.removeAttribute('style');
+
+    // Ensure the SVG scales properly via viewBox instead of fixed dimensions
+    var w = parseFloat(svgEl.getAttribute('width') || svgEl.getBoundingClientRect().width);
+    var h = parseFloat(svgEl.getAttribute('height') || svgEl.getBoundingClientRect().height);
+    if (w && h && !clone.getAttribute('viewBox')) {
+      clone.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    }
+    clone.removeAttribute('width');
+    clone.removeAttribute('height');
+
     clone.style.maxWidth = '92vw';
     clone.style.maxHeight = '88vh';
-    clone.style.width = 'auto';
+    clone.style.width = '100%';
     clone.style.height = 'auto';
     zoomContent.innerHTML = '';
     zoomContent.appendChild(clone);
@@ -1541,7 +1640,7 @@ stateDiagram-v2
     var svg = null;
     while (target && target !== this) {
       if (target.tagName === 'svg') { svg = target; }
-      if (target.hasAttribute && target.hasAttribute('data-processed') ||
+      if ((target.hasAttribute && target.hasAttribute('data-processed')) ||
           (target.classList && target.classList.contains('mermaid'))) {
         // Found a mermaid container; use the SVG we found inside it
         if (svg) {
@@ -1560,9 +1659,7 @@ stateDiagram-v2
       svg.style.cursor = 'pointer';
     });
   }
-  // Run after mermaid renders, and also observe for late renders
-  setTimeout(markMermaidClickable, 1000);
-  setTimeout(markMermaidClickable, 3000);
+  // Observe for late renders as a safety net
   new MutationObserver(function() { setTimeout(markMermaidClickable, 200); })
     .observe(document.getElementById('deck'), { childList: true, subtree: true });
 </script>
