@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Temporal Cloud CI/CD pipeline orchestrator built with .NET 8 and the Temporal .NET SDK. Includes 4 workflows, 5 activity classes, an ASP.NET Core API, and 5 dedicated workers — each on its own task queue.
+Temporal Cloud CI/CD pipeline orchestrator built with .NET 10 and the Temporal .NET SDK. Includes 4 workflows, 5 activity classes, an ASP.NET Core API, and 5 dedicated workers — each on its own task queue.
 
 ## Repository State
 
@@ -17,7 +17,7 @@ Temporal Cloud CI/CD pipeline orchestrator built with .NET 8 and the Temporal .N
 
 ## Tech Stack
 
-- **.NET 8 / C#** — MSBuild, NuGet packages (central package management)
+- **.NET 10 / C#** — MSBuild, NuGet packages (central package management)
 - **Temporal** — Temporalio .NET SDK 1.13.0
 - **GitHub Actions** for CI/CD
 
@@ -33,7 +33,7 @@ dotnet format
 
 ### Option A: Local Temporal dev server
 
-Requires: `temporal` CLI, .NET 8 SDK
+Requires: `temporal` CLI, .NET 10 SDK
 
 ```sh
 # Start Temporal + register namespace and search attributes
