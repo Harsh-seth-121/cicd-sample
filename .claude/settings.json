@@ -19,7 +19,23 @@
       "Bash(python3 slides_build/build_pptx.py)",
       "Bash(npm list:*)",
       "Bash(mmdc -i 03_end_to_end_workflow.md -o 03_end_to_end_workflow.svg -e transparent)",
-      "Bash(mmdc -i 03_end_to_end_workflow.md -o 03_end_to_end_workflow.svg -e svg -b transparent)"
+      "Bash(mmdc -i 03_end_to_end_workflow.md -o 03_end_to_end_workflow.svg -e svg -b transparent)",
+      "Bash(grep -E \"^\\\\-.*\\\\.\\(yml|yaml|json|env|sh\\)$\")",
+      "Bash(find /Users/harshseth/repos/personal-projects/cicd-sample -name \"*.csproj\" -exec grep -l \"net8.0\\\\|net7.0\\\\|net6.0\" {} \\\\;)",
+      "Bash(xargs cat *)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet nuget *)",
+      "Bash(docker-compose down *)",
+      "Bash(docker-compose build *)",
+      "Bash(docker-compose up *)",
+      "Bash(docker-compose ps *)",
+      "Bash(docker-compose logs *)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" http://localhost:5100/api/health)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" http://localhost:5100/api/healthz)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" -X POST http://localhost:5100/api/webhooks/github -H 'Content-Type: application/json' -d '{\"repository\":\"test/repo\",\"ref\":\"refs/heads/feature-1\",\"commitSha\":\"abc1234567890\",\"eventType\":\"push\"}')",
+      "Bash(curl -s http://localhost:5100/api/operations/pipelines)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" http://localhost:5100/api/operations/pipeline-test/repo-abc1234-1777030869)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" \"http://localhost:5100/api/operations/pipelines/pipeline-test/repo-abc1234-1777030869\")"
     ]
   }
 }
