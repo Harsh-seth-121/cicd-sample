@@ -1,6 +1,6 @@
 # Temporal Cloud CI/CD Pipeline Orchestrator
 
-A CI/CD pipeline orchestrator built with .NET 8 and the Temporal .NET SDK. Temporal Cloud handles workflow orchestration, history, and visibility while dedicated .NET workers execute build, test, version, publish, and deploy stages.
+A CI/CD pipeline orchestrator built with .NET 10 and the Temporal .NET SDK. Temporal Cloud handles workflow orchestration, history, and visibility while dedicated .NET workers execute build, test, version, publish, and deploy stages.
 
 ## Project Overview
 
@@ -37,7 +37,7 @@ All branches deploy to **DEV**. Only `main` progresses from DEV to **QA**. The s
 
 ### Tech Stack
 
-- .NET 8 / C# with central package management
+- .NET 10 / C# with central package management
 - Temporal .NET SDK 1.13.0
 - Docker + Docker Compose
 - GitHub Actions CI/CD
@@ -47,7 +47,7 @@ All branches deploy to **DEV**. Only `main` progresses from DEV to **QA**. The s
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Docker](https://docs.docker.com/get-docker/) (for Docker Compose option)
 - [Temporal CLI](https://docs.temporal.io/cli) (for local dev server option)
 
