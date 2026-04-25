@@ -251,6 +251,11 @@ public class PipelineIngressWorkflowTests : IAsyncLifetime
                 version, image, DateTimeOffset.UtcNow,
                 new Dictionary<string, string> { ["branch"] = metadata.Branch }));
 
+        // --- Metrics Activities ---
+        [Temporalio.Activities.Activity]
+        public Task RecordPipelineCompletedAsync(string repository, string status, double durationSeconds) =>
+            Task.CompletedTask;
+
         // --- Deploy Activities ---
         [Temporalio.Activities.Activity]
         public Task<DeploymentResult> DeployToEnvironmentAsync(

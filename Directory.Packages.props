@@ -17,6 +17,25 @@
     <!-- API -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
 
+    <!-- OpenTelemetry Core -->
+    <PackageVersion Include="OpenTelemetry" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+
+    <!-- OTel Instrumentation -->
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+
+    <!-- OTel Exporters -->
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.15.3-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.15.3-beta.1" />
+
+    <!-- Temporal OTel Extensions -->
+    <PackageVersion Include="Temporalio.Extensions.OpenTelemetry" Version="1.13.0" />
+    <PackageVersion Include="Temporalio.Extensions.DiagnosticSource" Version="1.13.0" />
+
     <!-- Testing -->
     <PackageVersion Include="coverlet.collector" Version="10.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />

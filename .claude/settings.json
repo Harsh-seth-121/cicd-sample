@@ -35,7 +35,11 @@
       "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" -X POST http://localhost:5100/api/webhooks/github -H 'Content-Type: application/json' -d '{\"repository\":\"test/repo\",\"ref\":\"refs/heads/feature-1\",\"commitSha\":\"abc1234567890\",\"eventType\":\"push\"}')",
       "Bash(curl -s http://localhost:5100/api/operations/pipelines)",
       "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" http://localhost:5100/api/operations/pipeline-test/repo-abc1234-1777030869)",
-      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" \"http://localhost:5100/api/operations/pipelines/pipeline-test/repo-abc1234-1777030869\")"
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\\\\n\" \"http://localhost:5100/api/operations/pipelines/pipeline-test/repo-abc1234-1777030869\")",
+      "Read(//Users/harshseth/.nuget/packages/temporalio/**)",
+      "Read(//Users/harshseth/.nuget/packages/**)",
+      "Bash(find /Users/harshseth/.nuget/packages/temporalio.extensions.opentelemetry* -maxdepth 2 -type d)",
+      "Bash(find /Users/harshseth/.nuget/packages/temporalio/1.11.1 -name \"Temporalio.xml\" -path \"*netstandard*\" -exec head -200 {} \\\\;)"
     ]
   }
 }

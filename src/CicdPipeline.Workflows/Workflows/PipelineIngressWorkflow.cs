@@ -154,6 +154,13 @@ public class PipelineIngressWorkflow
         var finalStatus = deployResult.Succeeded ? PipelineStatus.Succeeded : PipelineStatus.Failed;
         SetStage(IngressStage.Completed, finalStatus);
 
+        // Record pipeline completion metrics
+        var pipelineDuration = (Workflow.UtcNow - trigger.ReceivedAt).TotalSeconds;
+        await Workflow.ExecuteActivityAsync(
+            (MetricsActivities act) => act.RecordPipelineCompletedAsync(
+                _metadata.Repository, finalStatus.ToString(), pipelineDuration),
+            IngressActivityOptions);
+
         return deployResult;
     }
 

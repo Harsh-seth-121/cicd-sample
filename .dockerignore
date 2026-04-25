@@ -1,0 +1,49 @@
+# .NET local build outputs (largest offenders)
+**/bin
+**/obj
+**/*.user
+**/*.suo
+artifacts/
+
+# Node / dashboard artifacts pulled in via src/
+**/node_modules
+**/dist
+**/dist-ssr
+**/.vite
+**/*.tsbuildinfo
+
+# VCS, IDE, OS
+.git
+.gitignore
+.github
+.idea
+.vscode
+.vs
+.claude
+.DS_Store
+
+# Tests are not referenced by the runtime Dockerfile
+tests/
+
+# Docs and presentation artifacts
+Docs/
+*.md
+*.pptx
+*.svg
+*.html
+
+# Compose / infra files (not consumed by the .NET image build)
+docker-compose.yml
+docker-compose.*.yml
+otel-collector-config.yaml
+prometheus.yml
+grafana/
+scripts/
+
+# Logs
+**/*.log
+**/logs/
+
+# Don't ship the Dockerfile/.dockerignore themselves into the image
+Dockerfile
+.dockerignore

@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "cicd-api"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["api:8080"]
+        labels:
+          service: "api"
+
+  - job_name: "cicd-worker-orchestrator"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["worker-orchestrator:9464"]
+        labels:
+          service: "worker-orchestrator"
+
+  - job_name: "cicd-worker-buildtest"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["worker-buildtest:9465"]
+        labels:
+          service: "worker-buildtest"
+
+  - job_name: "cicd-worker-gitversion"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["worker-gitversion:9466"]
+        labels:
+          service: "worker-gitversion"
+
+  - job_name: "cicd-worker-publish"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["worker-publish:9467"]
+        labels:
+          service: "worker-publish"
+
+  - job_name: "cicd-worker-deploy"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["worker-deploy:9468"]
+        labels:
+          service: "worker-deploy"
