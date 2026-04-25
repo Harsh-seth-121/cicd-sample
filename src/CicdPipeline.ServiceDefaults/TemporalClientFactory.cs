@@ -1,7 +1,11 @@
+using System.Diagnostics.Metrics;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Temporalio.Client;
+using Temporalio.Extensions.DiagnosticSource;
+using Temporalio.Extensions.OpenTelemetry;
+using Temporalio.Runtime;
 
 namespace CicdPipeline.ServiceDefaults;
 
@@ -9,6 +13,8 @@ public class TemporalClientFactory
 {
     private readonly TemporalSettings _settings;
     private readonly ILogger<TemporalClientFactory> _logger;
+    private readonly TracingInterceptor _tracingInterceptor;
+    private readonly TemporalRuntime _telemetryRuntime;
 
     private const int MaxRetries = 6;
     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(1);
@@ -17,6 +23,20 @@ public class TemporalClientFactory
     {
         _settings = settings.Value;
         _logger = logger;
+
+        _tracingInterceptor = new TracingInterceptor(new TracingInterceptorOptions());
+
+        var meter = new Meter("Temporalio", "1.0.0");
+        _telemetryRuntime = new TemporalRuntime(new TemporalRuntimeOptions
+        {
+            Telemetry = new TelemetryOptions
+            {
+                Metrics = new MetricsOptions
+                {
+                    CustomMetricMeter = new CustomMetricMeter(meter, disableWorkflowTracingEventListener: false),
+                },
+            },
+        });
     }
 
     public async Task<TemporalClient> CreateClientAsync()
@@ -24,6 +44,8 @@ public class TemporalClientFactory
         var options = new TemporalClientConnectOptions(_settings.ServerAddress)
         {
             Namespace = _settings.Namespace,
+            Interceptors = [_tracingInterceptor],
+            Runtime = _telemetryRuntime,
         };
 
         if (HasTlsConfiguration())

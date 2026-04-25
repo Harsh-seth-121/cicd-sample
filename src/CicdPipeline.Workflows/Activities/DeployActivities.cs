@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using CicdPipeline.Contracts.Enums;
 using CicdPipeline.Contracts.Models;
+using CicdPipeline.ServiceDefaults;
 using Microsoft.Extensions.Logging;
 using Temporalio.Activities;
 
@@ -29,6 +31,13 @@ public class DeployActivities
             await Task.Delay(100);
         }
 
+        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+        {
+            { "activity", "DeployToEnvironment" },
+            { "task_queue", "cicd.deploy" },
+            { "environment", environment.ToString() },
+        });
+
         return new DeploymentResult(
             Environment: environment,
             Succeeded: true,
@@ -51,6 +60,13 @@ public class DeployActivities
             ActivityExecutionContext.Current.Heartbeat();
             await Task.Delay(100);
         }
+
+        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+        {
+            { "activity", "VerifyEnvironment" },
+            { "task_queue", "cicd.deploy" },
+            { "environment", environment.ToString() },
+        });
 
         return new EnvironmentVerificationResult(
             Environment: environment,

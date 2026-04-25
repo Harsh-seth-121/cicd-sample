@@ -16,11 +16,13 @@ COPY src/CicdPipeline.Worker.GitVersion/CicdPipeline.Worker.GitVersion.csproj sr
 COPY src/CicdPipeline.Worker.Publish/CicdPipeline.Worker.Publish.csproj src/CicdPipeline.Worker.Publish/
 COPY src/CicdPipeline.Worker.Deploy/CicdPipeline.Worker.Deploy.csproj src/CicdPipeline.Worker.Deploy/
 
-RUN dotnet restore ${PROJECT_PATH}
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
+    dotnet restore ${PROJECT_PATH}
 
 # Copy all source and build
 COPY src/ src/
-RUN dotnet publish ${PROJECT_PATH} -c Release -o /app/publish
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
+    dotnet publish ${PROJECT_PATH} -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

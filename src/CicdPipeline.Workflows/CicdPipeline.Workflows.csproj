@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CicdPipeline.Contracts\CicdPipeline.Contracts.csproj" />
+    <ProjectReference Include="..\CicdPipeline.ServiceDefaults\CicdPipeline.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

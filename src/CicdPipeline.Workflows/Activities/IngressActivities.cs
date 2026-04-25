@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using CicdPipeline.Contracts;
 using CicdPipeline.Contracts.Enums;
 using CicdPipeline.Contracts.Models;
+using CicdPipeline.ServiceDefaults;
 using Microsoft.Extensions.Logging;
 using Temporalio.Activities;
 
@@ -36,6 +38,13 @@ public class IngressActivities
 
         // TODO: Validate webhook signature from RawHeaders
         await Task.CompletedTask;
+
+        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+        {
+            { "activity", "ValidateEvent" },
+            { "task_queue", "cicd.pipeline.orchestrator" },
+        });
+
         return true;
     }
 
@@ -52,6 +61,12 @@ public class IngressActivities
         _logger.LogInformation(
             "Normalized pipeline {PipelineId}: branch={Branch} classification={Classification}",
             pipelineId, branch, classification);
+
+        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+        {
+            { "activity", "NormalizeMetadata" },
+            { "task_queue", "cicd.pipeline.orchestrator" },
+        });
 
         return new NormalizedPipelineMetadata(
             PipelineId: pipelineId,

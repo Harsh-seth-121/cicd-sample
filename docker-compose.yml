@@ -70,9 +70,52 @@ services:
     networks:
       - cicd
 
+  # --- Telemetry Infrastructure ---
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - cicd
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+    networks:
+      - cicd
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - cicd
+
+  # --- Application Services ---
+
   api:
     build:
       context: .
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
       args:
         PROJECT_PATH: src/CicdPipeline.Api/CicdPipeline.Api.csproj
     command: ["CicdPipeline.Api.dll"]
@@ -81,90 +124,120 @@ services:
     environment:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
+      - Otel__OtlpEndpoint=http://otel-collector:4317
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     networks:
       - cicd
 
   worker-orchestrator:
     build:
       context: .
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
       args:
         PROJECT_PATH: src/CicdPipeline.Worker.Orchestrator/CicdPipeline.Worker.Orchestrator.csproj
     command: ["CicdPipeline.Worker.Orchestrator.dll"]
     environment:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
+      - Otel__OtlpEndpoint=http://otel-collector:4317
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     networks:
       - cicd
 
   worker-buildtest:
     build:
       context: .
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
       args:
         PROJECT_PATH: src/CicdPipeline.Worker.BuildTest/CicdPipeline.Worker.BuildTest.csproj
     command: ["CicdPipeline.Worker.BuildTest.dll"]
     environment:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
+      - Otel__OtlpEndpoint=http://otel-collector:4317
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     networks:
       - cicd
 
   worker-gitversion:
     build:
       context: .
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
       args:
         PROJECT_PATH: src/CicdPipeline.Worker.GitVersion/CicdPipeline.Worker.GitVersion.csproj
     command: ["CicdPipeline.Worker.GitVersion.dll"]
     environment:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
+      - Otel__OtlpEndpoint=http://otel-collector:4317
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     networks:
       - cicd
 
   worker-publish:
     build:
       context: .
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
       args:
         PROJECT_PATH: src/CicdPipeline.Worker.Publish/CicdPipeline.Worker.Publish.csproj
     command: ["CicdPipeline.Worker.Publish.dll"]
     environment:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
+      - Otel__OtlpEndpoint=http://otel-collector:4317
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     networks:
       - cicd
 
   worker-deploy:
     build:
       context: .
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
       args:
         PROJECT_PATH: src/CicdPipeline.Worker.Deploy/CicdPipeline.Worker.Deploy.csproj
     command: ["CicdPipeline.Worker.Deploy.dll"]
     environment:
       - Temporal__ServerAddress=temporal:7233
       - Temporal__Namespace=cicd-prodctl
+      - Otel__OtlpEndpoint=http://otel-collector:4317
     depends_on:
       temporal-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
     networks:
       - cicd
 
   dashboard:
     build:
       context: src/CicdPipeline.Dashboard
+      provenance: false  # Explicitly disables provenance attestation
+      sbom: false  # Explicitly disables SBOM attestation
     ports:
       - "3001:3000"
     depends_on:

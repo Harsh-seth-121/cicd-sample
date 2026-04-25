@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using CicdPipeline.Contracts.Models;
+using CicdPipeline.ServiceDefaults;
 using Microsoft.Extensions.Logging;
 using Temporalio.Activities;
 
@@ -38,6 +40,7 @@ public class PublishActivities
     [Activity]
     public async Task BuildOrFinalizeImageAsync(ImageMetadata image, string commitSha)
     {
+        var sw = Stopwatch.StartNew();
         _logger.LogInformation(
             "Building image {ImageName}:{Tag} for commit {Sha}",
             image.ImageName, image.Tag, commitSha);
@@ -48,11 +51,14 @@ public class PublishActivities
             ActivityExecutionContext.Current.Heartbeat();
             await Task.Delay(100);
         }
+
+        RecordMetrics("BuildOrFinalizeImage", sw.Elapsed);
     }
 
     [Activity]
     public async Task PushImageAsync(ImageMetadata image)
     {
+        var sw = Stopwatch.StartNew();
         _logger.LogInformation("Pushing image {FullImageRef}", image.FullImageRef);
 
         // TODO: Push to container registry
@@ -61,6 +67,8 @@ public class PublishActivities
             ActivityExecutionContext.Current.Heartbeat();
             await Task.Delay(100);
         }
+
+        RecordMetrics("PushImage", sw.Elapsed);
     }
 
     [Activity]
@@ -102,5 +110,18 @@ public class PublishActivities
                 ["sha"] = metadata.CommitSha,
                 ["semver"] = version.SemVer,
             });
+    }
+
+    private static void RecordMetrics(string activityName, TimeSpan elapsed)
+    {
+        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+        {
+            { "activity", activityName },
+            { "task_queue", "cicd.publish" },
+        });
+        CicdPipelineMetrics.StageDuration.Record(elapsed.TotalSeconds, new TagList
+        {
+            { "stage", activityName },
+        });
     }
 }

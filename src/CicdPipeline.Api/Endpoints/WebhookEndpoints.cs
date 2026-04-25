@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using CicdPipeline.Api.Models;
 using CicdPipeline.Contracts;
 using CicdPipeline.Contracts.Enums;
 using CicdPipeline.Contracts.Models;
+using CicdPipeline.ServiceDefaults;
 using CicdPipeline.Workflows.Workflows;
 using Temporalio.Client;
 
@@ -69,6 +71,14 @@ public static class WebhookEndpoints
                 Id = workflowId,
                 TaskQueue = TaskQueues.Orchestrator,
             });
+
+        var branch = trigger.Ref.Replace("refs/heads/", "");
+        CicdPipelineMetrics.PipelineStarted.Add(1, new TagList
+        {
+            { "repository", trigger.Repository },
+            { "trigger_type", trigger.TriggerType.ToString() },
+            { "branch", branch },
+        });
 
         return Results.Accepted(
             $"/api/ops/pipelines/{handle.Id}/status",
