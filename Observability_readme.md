@@ -256,7 +256,7 @@ grafana:
   volumes:
     - ./grafana/provisioning:/etc/grafana/provisioning:ro
   ports:
-    - "3000:3000"
+    - "3030:3000"
   depends_on:
     - prometheus
   networks:
@@ -339,7 +339,7 @@ depends_on:
 3. `docker-compose up --build` — all containers start healthy
 4. Trigger a pipeline via curl, then verify:
    - **Prometheus** (`http://localhost:9090`): query `cicd_pipeline_started_total`, `temporal_request_total`, `process_runtime_dotnet_gc_collections_count_total`
-   - **Grafana** (`http://localhost:3000`): dashboard shows data
+   - **Grafana** (`http://localhost:3030`): dashboard shows data
    - **OTel Collector logs** (`docker-compose logs otel-collector`): trace spans visible in stdout
 
 ---
@@ -355,4 +355,4 @@ depends_on:
 | OTel Collector gRPC | 4317 | OTLP trace/log ingestion |
 | OTel Collector HTTP | 4318 | OTLP trace/log ingestion |
 | Prometheus | 9090 | Metrics storage + UI |
-| Grafana | 3000 | Dashboards |
+| Grafana | 3030 | Dashboards |

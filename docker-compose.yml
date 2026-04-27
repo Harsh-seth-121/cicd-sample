@@ -103,7 +103,7 @@ services:
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
-      - "3000:3000"
+      - "3030:3000"
     depends_on:
       - prometheus
     networks:

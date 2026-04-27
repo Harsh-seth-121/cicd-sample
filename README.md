@@ -105,9 +105,10 @@ docker-compose up --build
 
 | URL | Description |
 |-----|-------------|
-| `http://localhost:3000` | Pipeline Dashboard |
+| `http://localhost:3001` | Pipeline Dashboard |
 | `http://localhost:5100` | API |
 | `http://localhost:8080` | Temporal UI |
+| `http://localhost:3030` | Grafana |
 
 ### Trigger a Pipeline
 
