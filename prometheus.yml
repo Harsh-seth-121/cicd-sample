@@ -3,6 +3,13 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
+  - job_name: "temporal-server"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["temporal:8000"]
+        labels:
+          service: "temporal-server"
+
   - job_name: "cicd-api"
     metrics_path: "/metrics"
     static_configs:

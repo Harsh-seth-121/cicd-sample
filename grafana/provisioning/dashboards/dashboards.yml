@@ -3,11 +3,10 @@ apiVersion: 1
 providers:
   - name: "default"
     orgId: 1
-    folder: "CI/CD Pipeline"
     type: file
     disableDeletion: false
     editable: true
     updateIntervalSeconds: 30
     options:
       path: /etc/grafana/provisioning/dashboards
-      foldersFromFilesStructure: false
+      foldersFromFilesStructure: true
