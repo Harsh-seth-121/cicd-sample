@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using CicdPipeline.Contracts.Models;
 using CicdPipeline.ServiceDefaults;
 using Microsoft.Extensions.Logging;
@@ -8,6 +7,8 @@ namespace CicdPipeline.Workflows.Activities;
 
 public class GitVersionActivities
 {
+    private const string TaskQueue = "cicd.gitversion";
+
     private readonly ILogger<GitVersionActivities> _logger;
 
     public GitVersionActivities(ILogger<GitVersionActivities> logger)
@@ -16,61 +17,47 @@ public class GitVersionActivities
     }
 
     [Activity]
-    public async Task LoadRepoContextAsync(string repository, string commitSha, string branch)
-    {
-        _logger.LogInformation(
-            "Loading repo context for {Repository}@{Sha} (branch: {Branch})",
-            repository, commitSha, branch);
-
-        // TODO: Verify repo is a full clone with correct ref, GitVersion config exists
-        await Task.Delay(50);
-
-        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+    public Task LoadRepoContextAsync(string repository, string commitSha, string branch) =>
+        CicdPipelineMetrics.TrackActivity("LoadRepoContext", TaskQueue, async () =>
         {
-            { "activity", "LoadRepoContext" },
-            { "task_queue", "cicd.gitversion" },
+            _logger.LogInformation(
+                "Loading repo context for {Repository}@{Sha} (branch: {Branch})",
+                repository, commitSha, branch);
+
+            // TODO: Verify repo is a full clone with correct ref, GitVersion config exists
+            await Task.Delay(50);
         });
-    }
 
     [Activity]
-    public async Task<VersionInfo> ComputeVersionAsync(string repository, string branch)
-    {
-        var sw = Stopwatch.StartNew();
-        _logger.LogInformation("Computing version for {Repository} on branch {Branch}", repository, branch);
-
-        // TODO: Run `gitversion /output json` CLI, parse output into VersionInfo
-        await Task.Delay(100);
-
-        var preRelease = branch == "main" ? null : $"feature.1";
-        var semVer = branch == "main" ? "1.0.0" : "1.0.1-feature.1";
-
-        CicdPipelineMetrics.ActivityExecuted.Add(1, new TagList
+    public Task<VersionInfo> ComputeVersionAsync(string repository, string branch) =>
+        CicdPipelineMetrics.TrackActivity("ComputeVersion", TaskQueue, async () =>
         {
-            { "activity", "ComputeVersion" },
-            { "task_queue", "cicd.gitversion" },
-        });
-        CicdPipelineMetrics.StageDuration.Record(sw.Elapsed.TotalSeconds, new TagList
-        {
-            { "stage", "ComputeVersion" },
-        });
+            _logger.LogInformation("Computing version for {Repository} on branch {Branch}", repository, branch);
 
-        return new VersionInfo(
-            SemVer: semVer,
-            MajorMinorPatch: "1.0.0",
-            PreReleaseTag: preRelease,
-            BuildMetadata: null,
-            FullSemVer: semVer,
-            InformationalVersion: $"{semVer}+Branch.{branch}",
-            BranchName: branch,
-            Sha: "stub-sha");
-    }
+            // TODO: Run `gitversion /output json` CLI, parse output into VersionInfo
+            await Task.Delay(100);
+
+            var preRelease = branch == "main" ? null : $"feature.1";
+            var semVer = branch == "main" ? "1.0.0" : "1.0.1-feature.1";
+
+            return new VersionInfo(
+                SemVer: semVer,
+                MajorMinorPatch: "1.0.0",
+                PreReleaseTag: preRelease,
+                BuildMetadata: null,
+                FullSemVer: semVer,
+                InformationalVersion: $"{semVer}+Branch.{branch}",
+                BranchName: branch,
+                Sha: "stub-sha");
+        });
 
     [Activity]
-    public async Task PersistVersionMetadataAsync(VersionInfo versionInfo)
-    {
-        _logger.LogInformation("Persisting version metadata: {SemVer}", versionInfo.SemVer);
+    public Task PersistVersionMetadataAsync(VersionInfo versionInfo) =>
+        CicdPipelineMetrics.TrackActivity("PersistVersionMetadata", TaskQueue, async () =>
+        {
+            _logger.LogInformation("Persisting version metadata: {SemVer}", versionInfo.SemVer);
 
-        // TODO: Write version metadata to a shared store
-        await Task.Delay(50);
-    }
+            // TODO: Write version metadata to a shared store
+            await Task.Delay(50);
+        });
 }

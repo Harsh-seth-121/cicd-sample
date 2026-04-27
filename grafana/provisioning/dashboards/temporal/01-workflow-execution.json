@@ -1,0 +1,133 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "title": "Workflow completions by outcome",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(temporal_workflow_completed_total{workflow_type=~\"$workflow_type\"}[$__rate_interval]))", "legendFormat": "completed", "refId": "A" },
+        { "expr": "sum(rate(temporal_workflow_failed_total{workflow_type=~\"$workflow_type\"}[$__rate_interval]))", "legendFormat": "failed", "refId": "B" },
+        { "expr": "sum(rate(temporal_workflow_canceled_total{workflow_type=~\"$workflow_type\"}[$__rate_interval]))", "legendFormat": "canceled", "refId": "C" },
+        { "expr": "sum(rate(temporal_workflow_continue_as_new_total{workflow_type=~\"$workflow_type\"}[$__rate_interval]))", "legendFormat": "continue-as-new", "refId": "D" },
+        { "expr": "sum(rate(temporal_workflow_terminated_total{workflow_type=~\"$workflow_type\"}[$__rate_interval]))", "legendFormat": "terminated", "refId": "E" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "completed" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "canceled" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Workflows per type",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{
+        "expr": "sum by (workflow_type) (rate(temporal_workflow_completed_total[$__rate_interval]))",
+        "legendFormat": "{{workflow_type}}",
+        "refId": "A"
+      }],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "title": "Workflow end-to-end latency p95 (by type)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le, workflow_type) (rate(temporal_workflow_endtoend_latency_milliseconds_bucket[$__rate_interval]))) / 1000",
+        "legendFormat": "{{workflow_type}}",
+        "refId": "A"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "title": "Workflow end-to-end latency p50 / p95 / p99",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(temporal_workflow_endtoend_latency_milliseconds_bucket{workflow_type=~\"$workflow_type\"}[$__rate_interval]))) / 1000", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(temporal_workflow_endtoend_latency_milliseconds_bucket{workflow_type=~\"$workflow_type\"}[$__rate_interval]))) / 1000", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(temporal_workflow_endtoend_latency_milliseconds_bucket{workflow_type=~\"$workflow_type\"}[$__rate_interval]))) / 1000", "legendFormat": "p99", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "title": "Workflow task execution latency p95",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le, workflow_type) (rate(temporal_workflow_task_execution_latency_milliseconds_bucket[$__rate_interval]))) / 1000",
+        "legendFormat": "{{workflow_type}}",
+        "refId": "A"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "title": "Workflow task replay latency p95",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le, workflow_type) (rate(temporal_workflow_task_replay_latency_milliseconds_bucket[$__rate_interval]))) / 1000",
+        "legendFormat": "{{workflow_type}}",
+        "refId": "A"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "title": "Workflow task failures",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [{
+        "expr": "sum by (workflow_type, failure_reason) (rate(temporal_workflow_task_execution_failed_total[$__rate_interval]))",
+        "legendFormat": "{{workflow_type}} — {{failure_reason}}",
+        "refId": "A"
+      }],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "title": "Sticky cache hit ratio",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [{
+        "expr": "sum(rate(temporal_sticky_cache_hit_total[$__rate_interval])) / clamp_min(sum(rate(temporal_sticky_cache_hit_total[$__rate_interval])) + sum(rate(temporal_sticky_cache_miss_total[$__rate_interval])), 0.0001)",
+        "legendFormat": "hit ratio",
+        "refId": "A"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "custom": { "drawStyle": "line", "fillOpacity": 20 } }, "overrides": [] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["temporal", "workflow"],
+  "templating": {
+    "list": [
+      { "name": "datasource", "type": "datasource", "query": "prometheus", "current": { "text": "Prometheus", "value": "Prometheus" }, "hide": 0 },
+      {
+        "name": "workflow_type", "type": "query", "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(temporal_workflow_completed_total, workflow_type)", "refresh": 2, "includeAll": true, "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Temporal — Workflow Execution",
+  "uid": "temporal-workflow-execution",
+  "version": 1
+}
