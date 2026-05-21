@@ -3,7 +3,7 @@ namespace CicdPipeline.Contracts;
 public static class WorkflowIds
 {
     public static string PipelineIngress(string repo, string shortSha) =>
-        $"pipeline-{repo}-{shortSha}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+        $"pipeline-{repo.Replace('/', '_')}-{shortSha}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
     public static string BuildValidation(string pipelineId) =>
         $"build-{pipelineId}";
